@@ -118,6 +118,40 @@ A dedicated card. Nothing sits over the photos.
 - **Read-only events** (subscribed or view-only calendars): the panel opens in detail mode with no Save or Delete.
 - **Guest-only events** (a connected account is invited, not organising): the panel shows Yes / No / Maybe RSVP buttons for that account and only the fields the organiser allows.
 
+## Login screen (`/login`)
+Shown to anyone without a session (product spec FR-7–9). On the display it is seen once, at setup; after that the iPad stays signed in.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                                                              │
+│                  ┌──────────────────────────┐                │
+│                  │ Family Calendar          │                │
+│                  │ Sign in to continue      │                │
+│                  │                          │                │
+│                  │ Email                    │                │
+│                  │ [                      ] │                │
+│                  │ Password                 │                │
+│                  │ [                   👁 ] │                │
+│                  │                          │                │
+│                  │ [        Sign in       ] │                │
+│                  │     Forgot password?     │                │
+│                  └──────────────────────────┘                │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Page:** `--bg` background, no photos, clock or calendar data. Card centred horizontally and placed in the upper third, so the on-screen keyboard never covers the Sign in button.
+- **Card:** 440pt wide (full width minus 32pt on narrow screens), `--surface`, 1px `--border`, 20px radius, 40px padding, `gap: 16px`.
+- **Heading:** "Family Calendar" 30pt/800; "Sign in to continue" 17pt/600 `--text-2`.
+- **Fields:** labeled inputs, 56pt tall, 12px radius, 18pt text. Email uses `type="email"`, `autocomplete="email"`, no auto-capitalisation; password uses `autocomplete="current-password"` (so iPadOS can offer saved passwords) and a 48pt show/hide button.
+- **Sign in:** full-width, 60pt, filled `--accent`, 18pt/700. Shows a spinner and is disabled while signing in.
+- **Forgot password?:** text button, 48pt tall, `--accent`. Switches the card to one email field and **Send reset link**; on send it shows "If that address has an account, a reset link is on its way."
+- **Errors:** one line above the Sign in button in `--danger`, 15pt/600, e.g. "Email or password is incorrect." Fields keep their values except the password.
+- **No sign-up link.** Members are invited from Settings.
+- **Set new password** (`/auth/reset`, after an invite or reset link): same card, "Set a password", new password + confirm (min 8 characters), **Save password**.
+- **No access** (signed in, not a famcal member): same card, "This account doesn't have access to the family calendar", the signed-in email, and **Sign out**.
+- Follows the night theme like every other screen.
+
 ## Design tokens
 
 ### Color (light, default)

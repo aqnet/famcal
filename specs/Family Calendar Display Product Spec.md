@@ -52,6 +52,15 @@ The simpler alternative, steel-manned: share each personal calendar with the fam
 
 **Decision: pull photos from a configurable SmugMug gallery or folder through the SmugMug API v2, server-side.** The photo source is a SmugMug URL (a gallery or a folder) set in Settings, for example `https://<owner>.smugmug.com/<folder>/<gallery>/n-<nodeId>`. The app only ever reads what that URL points to. If the gallery is Public or Unlisted, an API key is enough. If it must stay Private, the server holds a SmugMug OAuth 1.0a token for the owner's account. Either way, credentials never reach the iPad.
 
+**Decision: sign in with Supabase Auth, the same pattern as our other Next.js + Supabase projects (pricingresearch, happy-pups).** Every page except the login screen and email-link routes requires a signed-in user. Sign-in is email and password through `@supabase/ssr`; a `proxy.ts` gate refreshes the session cookie on every request and redirects anyone without a session to `/login?next=<path>`. The server checks the user with `getUser()` (validated against the auth server), never `getSession()`. This replaces the custom "app session cookie" in earlier drafts.
+
+Two differences from those projects, because famcal's Supabase project is shared with other apps:
+
+1. **No public sign-up.** The shared project's `auth.users` also holds pricingresearch and whaleboat users, so having a Supabase account is not enough. famcal keeps its own allowlist (`famcal.members`); a signed-in user who isn't on it sees "This account doesn't have access to the family calendar" and nothing else. Accounts are added by invitation from Settings (FR-9), not by a sign-up form.
+2. **Project-wide auth settings are shared.** Email templates, the Site URL and the redirect allowlist belong to the whole Supabase project. famcal adds its own URLs to the redirect allowlist and must not change settings the other apps rely on (for example, turning off sign-ups project-wide would break pricingresearch).
+
+Signing in to famcal is separate from connecting Google (FR-1): the login says who may use the display; the Google connection is how the server reads and writes calendars.
+
 **Decision: ship as a full-screen web app (PWA), not a native iPad app.** Added to the Home Screen it runs without Safari chrome; Guided Access locks the iPad to it. A native app buys nothing v1 needs and adds App Store friction.
 
 **Decision: Open-Meteo for weather, called from the server.** It is free for non-commercial use, needs no API key or account, and covers current, hourly and 16-day forecasts. It takes latitude/longitude, not ZIP, so the ZIP is geocoded once when saved (FR-41). Fallback: OpenWeatherMap, which accepts a US ZIP directly but needs a free API key. Severe-weather alerts from the US National Weather Service are a v2 candidate.
@@ -87,8 +96,11 @@ Viewport figures are approximate and get verified on device in the Phase 0 spike
 
 **Authentication and setup**
 
-- FR-1: One-time setup screen: "Connect Google" runs OAuth for one account at a time (first the family account; "Add account" repeats it for others) with the `calendar.events` and `calendar.calendarlist.readonly` scopes.
-- FR-2: One refresh token per connected account, stored server-side, encrypted; the iPad holds only an app session cookie. No re-login after reboot, reload or 30 days idle (see Security for cookie rules).
+- FR-7: Login screen at `/login`: email, password, **Sign in**, and "Forgot password?". No sign-up link. Wrong credentials show one message ("Email or password is incorrect") without saying which. After sign-in, go to the `next` path (same-origin paths only) or the calendar.
+- FR-8: Every route except `/login`, `/auth/*` and static assets requires a session and membership in `famcal.members`; API routes answer 401 instead of redirecting. "Forgot password?" sends a Supabase reset email; its link lands on `/auth/confirm`, which signs the user in and sends them to the set-new-password screen (`/auth/reset`).
+- FR-9: Members: Settings (PIN) lists members and invites a new one by email (Supabase invite; the link lands on `/auth/confirm`, then set-password). Removing a member deletes their `famcal.members` row and signs out their sessions; their Supabase account is untouched, since other apps may use it. The first member is added by hand during setup (seed SQL), since there is no one to invite them.
+- FR-1: One-time setup screen, shown to a signed-in member until Google is connected: "Connect Google" runs OAuth for one account at a time (first the family account; "Add account" repeats it for others) with the `calendar.events` and `calendar.calendarlist.readonly` scopes.
+- FR-2: One Google refresh token per connected account, stored server-side, encrypted; the iPad holds only its Supabase session cookies. The display signs in once and stays signed in: no re-login after reboot, reload or 30 days idle, because the proxy refreshes the session on every request and the display polls every 60 s (see Security for cookie rules). Sign out lives in Settings, behind the PIN.
 - FR-3: "Connect SmugMug" stores either an API key (public/unlisted content) or an OAuth 1.0a token (private content). The photo source is then set by pasting a SmugMug URL (see Photo source configuration), with a browse picker as a convenience.
 - FR-4: Settings behind a 4-digit PIN: which calendars to show and their colours, family members and their emails, photo source URL(s), weather ZIP code and units, outdoor keywords, rotation speed, night hours.
 - FR-5: If a token is revoked or expires, the display keeps showing cached data and a quiet banner: "Reconnect Google".
@@ -196,9 +208,10 @@ Every action is a tap, a swipe or a panel; nothing needs hover, right-click, or 
 A thin Next.js server on the TypeScript / Supabase stack sits between the iPad and the external APIs; the iPad never holds a third-party token.
 
 ```
-┌──────────────────────┐   HTTPS + session cookie   ┌───────────────────────────┐
+┌──────────────────────┐ HTTPS + Supabase session   ┌───────────────────────────┐
 │ iPad Pro (PWA)       │ ─────────────────────────▶ │ Next.js app server        │
-│ Guided Access        │                            │ (API routes)              │
+│ Guided Access        │                            │ proxy.ts auth gate,       │
+│                      │                            │ API routes                │
 │ Service worker cache │ ◀───────────────────────── │                           │
 └──────────────────────┘     JSON, sized images     └─┬──────┬──────┬─────────┬─┘
                                                       │      │      │         │
@@ -206,15 +219,18 @@ A thin Next.js server on the TypeScript / Supabase stack sits between the iPad a
                                          │ Google      │ │SmugMug │ │Open-   │ │ Supabase  │
                                          │ Calendar v3 │ │API v2  │ │Meteo   │ │ tokens,   │
                                          │ (per acct)  │ │        │ │        │ │ settings, │
-                                         └─────────────┘ └────────┘ └────────┘ │ caches    │
+                                         └─────────────┘ └────────┘ └────────┘ │ caches,   │
+                                                                               │ Auth,     │
+                                                                               │ members   │
                                                                                └───────────┘
 ```
 
+- **Auth:** Supabase Auth via `@supabase/ssr`, laid out as in pricingresearch: `lib/supabase/server.ts` and `client.ts` (publishable key, user's session), `lib/supabase/proxy.ts` called from `proxy.ts` (refresh the session, gate everything but `/login` and `/auth/*`), `app/login` (page and server actions), `app/auth/confirm/route.ts` (email links; `next` restricted to same-origin paths). After the session check, the server confirms membership in `famcal.members`, then reads `famcal` data with a separate server-only client using the secret key (the schema is not exposed to the Data API).
 - **Client:** Next.js PWA, installed to the Home Screen, locked with Guided Access. Calendar grid is custom (or a headless library such as FullCalendar restyled to visualdesign.md).
 - **Server:** API routes proxy Open-Meteo (forecast), Google Calendar (list with sync tokens, insert, patch, delete events) and SmugMug (gallery images, sized URLs).
 - **Caching:** serverless functions don't keep memory between requests, so shared caches live in Supabase (or HTTP cache headers): photo list for 1 hour, weather for 15 minutes, per-calendar `syncToken`s. Events are not cached on the server (FR-16).
 - **Database location:** a dedicated `famcal` schema in a Supabase project shared with other apps. All famcal tables, functions and migrations live in that schema and never touch `public` or any other app's schema. Row-level security is on for every table with no `anon` or `authenticated` policies, and the schema is not added to the exposed Data API schemas: only the Next.js server reads it, with server-side credentials.
-- **Storage:** Supabase holds the encrypted Google refresh tokens, SmugMug credentials, settings (photo source URLs, weather ZIP and its resolved coordinates, family members, outdoor keywords) and the PIN hash and attempt counter. One household row, with one row per connected Google account (email, encrypted refresh token, selected calendars, colours); no multi-tenant design in v1.
+- **Storage:** Supabase holds the encrypted Google refresh tokens, SmugMug credentials, settings (photo source URLs, weather ZIP and its resolved coordinates, family members, outdoor keywords), the PIN hash and attempt counter, and `famcal.members` (Supabase user id, email, added by, added at). Login accounts themselves live in the project's shared `auth.users`. One household row, with one row per connected Google account (email, encrypted refresh token, selected calendars, colours); no multi-tenant design in v1.
 - **Future iPhone build** reuses the same API routes; only the layout layer changes.
 
 ## Non-functional, security and privacy
@@ -236,10 +252,11 @@ A thin Next.js server on the TypeScript / Supabase stack sits between the iPad a
 - Google and SmugMug credentials live only on the server, encrypted at rest. The browser never sees a Google or SmugMug token.
 - Request the narrowest scopes: `calendar.events` and `calendar.calendarlist.readonly`, SmugMug read-only.
 - The Google Cloud OAuth app must be moved to "In production" status: in "Testing" status, refresh tokens expire after 7 days and the display would silently log out weekly. As a personal app it can stay unverified (it shows a warning once at sign-in). Google Workspace (work) accounts often block unverified apps, so connecting a work account may fail; sharing that calendar with the family account is the workaround.
-- The app session cookie is set by the server (`HttpOnly`, `Secure`, `SameSite=Lax`) and renewed on use. Safari caps cookies set from JavaScript at 7 days, so it must never be set client-side.
+- Supabase session cookies are set by the server (the proxy and server actions, through `@supabase/ssr`), `Secure` and `SameSite=Lax`, and refreshed on use. Safari caps cookies set from JavaScript at 7 days, so the session must never be stored or refreshed client-side only.
+- Login is rate-limited by Supabase Auth; the login screen adds no extra hints about which emails exist.
 - Anyone standing at the iPad can edit the family calendar; that is the point. Settings, reconnect and invitations to unknown addresses are PIN-protected (FR-4, FR-6, FR-60). Delete is undoable, and Google keeps deleted events in Trash for 30 days.
 - Private events from personal accounts show as "Busy" (FR-53).
-- The app URL is behind the app session cookie; without it you get the setup/PIN screen, never calendar data.
+- Every page and API route is behind the login (FR-8); without a session you get the login screen, never calendar data. A signed-in user who isn't a famcal member gets the no-access screen.
 - Photos are proxied or signed short-lived URLs; the gallery's privacy setting on SmugMug is respected.
 - Real account names, gallery URLs and the home ZIP are never committed to the repository (it is public); they exist only in Settings.
 
@@ -247,14 +264,18 @@ A thin Next.js server on the TypeScript / Supabase stack sits between the iPad a
 
 | Phase | Scope | Exit criteria |
 | --- | --- | --- |
-| 0. Spike (1–2 evenings) | Google OAuth + list/create/delete one event; SmugMug resolve one URL and list one gallery; Open-Meteo ZIP geocoding; PWA on the 13" iPad with Wake Lock | Token survives a reboot; one photo and one event render on device; screen stays on for 1 hour as a Home Screen app |
-| 1. MVP (iPad) | Week/day views, edit panel, mosaic, weather and outdoor tags, settings + PIN, offline cache, dark theme | Acceptance criteria below pass on both iPad sizes |
+| 0. Spike (1–2 evenings) | Login first: Supabase Auth login screen, `proxy.ts` gate, `/auth/confirm`, `famcal.members` with the first member seeded. Then, behind the login: Google OAuth + list/create/delete one event; SmugMug resolve one URL and list one gallery; Open-Meteo ZIP geocoding; PWA on the 13" iPad with Wake Lock | `/login` loads without a session; any other path redirects to `/login?next=…`; a non-member is refused; the iPad stays signed in and the Google token survives a reboot; one photo and one event render on device; screen stays on for 1 hour as a Home Screen app |
+| 1. MVP (iPad) | Week/day views, edit panel, mosaic, weather and outdoor tags, settings + PIN (members, invite, sign out), forgot password, offline cache, dark theme | Acceptance criteria below pass on both iPad sizes |
 | 2. Polish | Drag to move/resize, push sync via watch channels, "this and following" recurrence, contact search, night mode tuning | Two weeks of daily family use with no reload |
 | 3. iPhone 16 Pro | Agenda layout, photo header card, same backend | Same create/edit flows pass on iPhone |
 
 ## Acceptance criteria (v1)
 
-- [ ] After setup, the iPad shows this week's family events with no Google sign-in prompt, including after a reboot.
+- [ ] Opening any famcal URL without a session shows the login screen; after signing in, you land on the page you asked for.
+- [ ] A Supabase user from another app on the shared project who is not in `famcal.members` cannot see any calendar data or call any API route.
+- [ ] "Forgot password?" sends a reset email, and its link sets a new password and signs you in.
+- [ ] A member invited from Settings receives an email, sets a password, and can sign in; removing them signs them out.
+- [ ] After setup, the iPad shows this week's family events with no login or Google sign-in prompt, including after a reboot and after 30 days.
 - [ ] A family member adds "Soccer, Sat 9–10am" by touch in under 15 s, and it appears on a phone's Google Calendar within 60 s.
 - [ ] An event created on a phone appears on the iPad within 2 minutes.
 - [ ] Editing and deleting (with undo) work for single and recurring events; a delete survives a reload during the undo window.
@@ -272,6 +293,8 @@ A thin Next.js server on the TypeScript / Supabase stack sits between the iPad a
 ## Open questions
 
 - [ ] Build order: ship v1 with the family account only (personal calendars shared to it) and add multi-account (FR-50–58) as v1.1? It removes the switcher, de-duplication and per-account failure handling from the first build.
+- [ ] Who gets a famcal login: parents only, or kids too? Does the iPad sign in as a shared "display" member or as a parent?
+- [ ] The shared Supabase project's email templates (invite, reset) are generic or branded for another app; is that acceptable, or does famcal need its own project later?
 - [ ] Which calendars on the family account should show (the primary only, or per-person calendars too)?
 - [ ] Is the SmugMug display gallery OK as Unlisted, or must it be Private (decides API key vs OAuth)?
 - [ ] Mounting: landscape only, or must portrait be first-class on the 11"?
@@ -283,6 +306,15 @@ A thin Next.js server on the TypeScript / Supabase stack sits between the iPad a
 ## API references
 
 Every calendar and photo requirement maps to a documented endpoint; nothing depends on scraping or the Calendar iframe.
+
+**Supabase Auth** (shared project; app pattern copied from pricingresearch)
+
+| Spec requirement | What to use | Docs |
+| --- | --- | --- |
+| FR-7 sign in | `supabase.auth.signInWithPassword` in a server action | [Password auth](https://supabase.com/docs/guides/auth/passwords) |
+| FR-8 session gate | `@supabase/ssr` `createServerClient` in `proxy.ts`; `auth.getUser()` | [Server-side auth for Next.js](https://supabase.com/docs/guides/auth/server-side/nextjs) |
+| FR-8 forgot password | `auth.resetPasswordForEmail`, then `auth.verifyOtp` on `/auth/confirm`, then `auth.updateUser({ password })` | [Password auth](https://supabase.com/docs/guides/auth/passwords) |
+| FR-9 invite, remove | `auth.admin.inviteUserByEmail` and `auth.admin.signOut` (server only, secret key) | [Auth admin API](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail) |
 
 **Google Calendar API v3** (base `https://www.googleapis.com/calendar/v3`)
 
