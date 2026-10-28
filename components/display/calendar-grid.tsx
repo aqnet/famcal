@@ -13,12 +13,15 @@ import {
   type TimedPlacement,
 } from "@/lib/calendar-model";
 import { fmtHour, fmtTimeShort } from "@/lib/format";
+import { store } from "@/lib/client/api";
 import { reducedMotion, slideIn } from "./hooks";
 
-export const GRID_START = 6; // 6 AM
-export const GRID_END = 22; // 10 PM
-const OPEN_AT = 7; // opens showing 7 AM–9 PM
-const VISIBLE_HOURS = 14;
+export const GRID_START = 0; // midnight
+export const GRID_END = 24; // midnight
+const OPEN_AT = 7; // opens with 7 AM at the top
+const VISIBLE_HOURS = 14; // default zoom: 7 AM–9 PM fills the card
+const MIN_HOURS = 3; // pinched all the way in
+const ZOOM_KEY = "famcal.visibleHours";
 const MIN_EVENT = 24;
 const HIT = 44;
 const SNAP = 15; // minutes
@@ -101,7 +104,19 @@ export function CalendarGrid({
 }) {
   const card = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
-  const [hourH, setHourH] = useState(56);
+  // Zoom: how many hours fill the card. Pinch (or ctrl + wheel / trackpad pinch) changes it, from the
+  // whole day down to a few hours, and this device remembers it.
+  const [viewH, setViewH] = useState(0);
+  const [visibleHours, setVisibleHours] = useState(VISIBLE_HOURS);
+  const hourH = viewH ? viewH / visibleHours : 56;
+  const zoomRef = useRef({ hours: visibleHours, hourH });
+  useEffect(() => {
+    zoomRef.current = { hours: visibleHours, hourH };
+  }, [visibleHours, hourH]);
+  // The time to hold still while the zoom changes: `min` stays `y` px below the scroller's top.
+  const zoomAnchor = useRef<{ min: number; y: number } | null>(null);
+  const pinch = useRef<{ span: number; hours: number; min: number } | null>(null);
+  const pinched = useRef(false); // this touch gesture became a pinch: no swipe, tap or drag
   const swipe = useRef<{ x: number; y: number; id: number; horizontal: boolean } | null>(null);
   const suppressClick = useRef(0);
   const dayView = days.length === 1;
@@ -120,15 +135,19 @@ export function CalendarGrid({
     setDragState(d);
   };
 
-  // Hour height: the 7 AM–9 PM window fills the card.
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    const measure = () => setHourH(Math.max(40, el.clientHeight / VISIBLE_HOURS));
+    const measure = () => setViewH(el.clientHeight);
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+  useEffect(() => {
+    const saved = Number(store.get(ZOOM_KEY, VISIBLE_HOURS));
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only readable after mount
+    if (saved >= MIN_HOURS && saved <= 24) setVisibleHours(saved);
   }, []);
 
   // Paging: on touch the week follows the finger, slides out when the swipe commits, and the next one
@@ -160,16 +179,34 @@ export function CalendarGrid({
     slideIn(pages(), first > prev.first ? 1 : -1, (card.current?.clientWidth ?? 600) * 0.3);
   }, [days]);
 
-  // Open at 7 AM, and drift back there after 60 s without scrolling.
+  // Open with 7 AM at the top. When the zoom changes, the anchored time (the pinch's midpoint, or else
+  // the top of the view) stays where it was.
+  const placed = useRef(false);
+  const shownHourH = useRef(hourH);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    const prev = shownHourH.current;
+    shownHourH.current = hourH;
+    if (!el || !viewH) return;
+    if (!placed.current) {
+      placed.current = true;
+      el.scrollTop = (OPEN_AT - GRID_START) * hourH;
+      return;
+    }
+    if (prev === hourH) return;
+    const a = zoomAnchor.current ?? { min: (el.scrollTop / prev) * 60, y: 0 };
+    el.scrollTop = (a.min / 60) * hourH - a.y;
+  }, [hourH, viewH]);
+
+  // Drift back to 7 AM after 60 s without scrolling (the zoom stays).
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    el.scrollTop = (OPEN_AT - GRID_START) * hourH;
     let timer: ReturnType<typeof setTimeout>;
     const arm = () => {
       clearTimeout(timer);
       timer = setTimeout(
-        () => el.scrollTo({ top: (OPEN_AT - GRID_START) * hourH, behavior: "smooth" }),
+        () => el.scrollTo({ top: (OPEN_AT - GRID_START) * zoomRef.current.hourH, behavior: "smooth" }),
         60_000,
       );
     };
@@ -178,18 +215,6 @@ export function CalendarGrid({
       clearTimeout(timer);
       el.removeEventListener("scroll", arm);
     };
-  }, [hourH]);
-
-  // While dragging, the finger must not also scroll the grid. touch-action can't change mid-gesture,
-  // so cancel the touchmoves instead (needs a non-passive listener, which React doesn't offer).
-  useEffect(() => {
-    const el = scroller.current;
-    if (!el) return;
-    const block = (e: TouchEvent) => {
-      if (dragRef.current) e.preventDefault();
-    };
-    el.addEventListener("touchmove", block, { passive: false });
-    return () => el.removeEventListener("touchmove", block);
   }, []);
 
   useEffect(() => {
@@ -203,6 +228,85 @@ export function CalendarGrid({
     if (press.current?.timer) clearTimeout(press.current.timer);
     press.current = null;
   };
+  // A second finger turns the gesture into a pinch: drop any hold, drag or swipe in progress.
+  const endGestures = () => {
+    cancelPress();
+    if (swipe.current?.horizontal) follow(0);
+    swipe.current = null;
+    if (dragRef.current) setDrag(null);
+    swallowClick.current = true;
+  };
+  // Native touch listeners, because React's are passive and can't stop the browser:
+  // - while dragging, the finger must not also scroll the grid (touch-action can't change mid-gesture);
+  // - two fingers pinch the time axis: apart shows fewer hours, larger; together shows more, up to the
+  //   whole day. The time between the fingers stays under them, so moving both also scrolls.
+  // - ctrl + wheel (a trackpad pinch in Chrome) zooms around the pointer.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const zoomTo = (hours: number, min: number, y: number) => {
+      zoomAnchor.current = { min, y };
+      setVisibleHours(clamp(hours, MIN_HOURS, 24));
+    };
+    const fingers = (e: TouchEvent) => {
+      const [a, b] = [e.touches[0], e.touches[1]];
+      return {
+        span: Math.max(40, Math.abs(a.clientY - b.clientY)),
+        y: (a.clientY + b.clientY) / 2 - el.getBoundingClientRect().top,
+      };
+    };
+    const start = (e: TouchEvent) => {
+      if (e.touches.length === 1) pinched.current = false;
+      if (e.touches.length !== 2) return;
+      const f = fingers(e);
+      const { hours, hourH: h } = zoomRef.current;
+      pinch.current = { span: f.span, hours, min: ((el.scrollTop + f.y) / h) * 60 };
+      pinched.current = true;
+      endGestures();
+    };
+    const move = (e: TouchEvent) => {
+      if (dragRef.current) e.preventDefault();
+      const p = pinch.current;
+      if (!p || e.touches.length < 2) return;
+      e.preventDefault();
+      const f = fingers(e);
+      zoomTo((p.hours * p.span) / f.span, p.min, f.y);
+    };
+    const end = (e: TouchEvent) => {
+      if (!pinch.current || e.touches.length >= 2) return;
+      pinch.current = null;
+      zoomAnchor.current = null;
+      store.set(ZOOM_KEY, zoomRef.current.hours);
+    };
+    let saveTimer: ReturnType<typeof setTimeout>;
+    const wheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const y = e.clientY - el.getBoundingClientRect().top;
+      const { hours, hourH: h } = zoomRef.current;
+      zoomTo(hours * Math.exp(e.deltaY * 0.01), ((el.scrollTop + y) / h) * 60, y);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        zoomAnchor.current = null;
+        store.set(ZOOM_KEY, zoomRef.current.hours);
+      }, 300);
+    };
+    el.addEventListener("touchstart", start, { passive: true });
+    el.addEventListener("touchmove", move, { passive: false });
+    el.addEventListener("touchend", end);
+    el.addEventListener("touchcancel", end);
+    el.addEventListener("wheel", wheel, { passive: false });
+    return () => {
+      clearTimeout(saveTimer);
+      el.removeEventListener("touchstart", start);
+      el.removeEventListener("touchmove", move);
+      el.removeEventListener("touchend", end);
+      el.removeEventListener("touchcancel", end);
+      el.removeEventListener("wheel", wheel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the latest state through refs
+  }, []);
+
   const startPress = (e: React.PointerEvent, begin: Press["begin"]) => {
     cancelPress();
     const touch = e.pointerType !== "mouse";
@@ -279,6 +383,7 @@ export function CalendarGrid({
     swipe.current = { x: e.clientX, y: e.clientY, id: e.pointerId, horizontal: false };
   };
   const onPointerMove = (e: React.PointerEvent) => {
+    if (pinched.current) return;
     const p = press.current;
     if (p && p.id === e.pointerId && Math.hypot(e.clientX - p.x, e.clientY - p.y) > p.slop) {
       if (p.timer)
@@ -345,6 +450,10 @@ export function CalendarGrid({
   };
   const onPointerUp = (e: React.PointerEvent) => {
     cancelPress();
+    if (pinched.current) {
+      swipe.current = null;
+      return;
+    }
     finishDrag(e);
     const s = swipe.current;
     swipe.current = null;
@@ -506,7 +615,7 @@ export function CalendarGrid({
         >
           <div className="hour-gutter">
             {Array.from({ length: GRID_END - GRID_START + 1 }, (_, i) => GRID_START + i).map((h) =>
-              h % 2 === 0 && h > GRID_START && h < GRID_END ? (
+              h % (hourH >= 64 ? 1 : 2) === 0 && h > GRID_START && h < GRID_END ? (
                 <span key={h} className="hour-label" style={{ top: (h - GRID_START) * hourH }}>
                   {fmtHour(h)}
                 </span>

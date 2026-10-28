@@ -91,7 +91,8 @@ The stack (up to four bands; only LL may repeat, as a 2×2 grid) is the one clos
 
 ## Week calendar (right panel)
 - **Columns:** 64pt hour gutter plus 7 equal day columns. Day header is the weekday at 16pt/600 with the date number at 24pt/800. Today's column is tinted `--today-tint` and its header text is `--accent`.
-- **Hours:** the grid spans 6 AM–10 PM and scrolls vertically; it opens showing 7 AM–9 PM, and drifts back to that window after 60 s idle. Hairline every hour, label every 2 hours (14pt `--text-3`). A 2pt `--accent` line marks the current time.
+- **Hours:** the grid spans the whole day (midnight–midnight) and scrolls vertically; it opens showing 7 AM–9 PM, and drifts back to 7 AM at the top after 60 s idle. Hairline every hour, label every 2 hours, or every hour once an hour is ≥ 64pt tall (14pt `--text-3`). A 2pt `--accent` line marks the current time.
+- **Zoom:** pinch the grid to change how many hours fill the card: fingers apart shows fewer, larger hours (down to 3), together shows more (up to all 24). The time between the fingers stays under them. Ctrl + wheel (a trackpad pinch) zooms around the pointer. The zoom is remembered on the device and kept by the idle drift.
 - **All-day row:** above the hour grid, up to 2 rows of bars; more shows a "+N" chip. Timed events longer than 24 h also draw here as bars.
 - **Events:** `<button>`s placed by start and end time, filled with the calendar color, `--on-event` text, 8px radius. The selected event gets a 3px `--text` ring.
   - ≥ 40pt tall: title 16pt/600 plus start time 14pt/500.
