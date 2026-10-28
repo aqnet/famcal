@@ -424,10 +424,8 @@ export function Display() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (pinPrompt) {
-        pinPrompt(false);
-        setPinPrompt(null);
-      } else if (reschedulePrompt) setReschedulePrompt(null);
+      if (pinPrompt) return; // the PIN pad handles its own keys, Escape included
+      if (reschedulePrompt) setReschedulePrompt(null);
       else if (photoOpen) setPhotoOpen(null);
       else if (forecastOpen) setForecastOpen(false);
       else if (panel) closePanel();

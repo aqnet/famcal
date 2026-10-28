@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/client/api";
 import { CloseIcon } from "@/components/icons";
 
@@ -25,10 +25,16 @@ export function PinPad({
   const [digits, setDigits] = useState("");
   const [first, setFirst] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+  // Latest digits, and whether a PIN is being checked, ahead of the next render so fast typing isn't lost.
+  const entered = useRef("");
+  const busyNow = useRef(false);
+  const setEntered = (v: string) => {
+    entered.current = v;
+    setDigits(v);
+  };
 
   const submit = async (pin: string) => {
-    setBusy(true);
+    busyNow.current = true;
     try {
       if (mode === "set") {
         if (first === null) {
@@ -57,18 +63,37 @@ export function PinPad({
     } catch {
       setMessage("Couldn't check the PIN. Are you online?");
     } finally {
-      setDigits("");
-      setBusy(false);
+      setEntered("");
+      busyNow.current = false;
     }
   };
 
   const press = (k: string) => {
-    if (busy) return;
-    if (k === "del") return setDigits((d) => d.slice(0, -1));
-    const next = (digits + k).slice(0, 4);
-    setDigits(next);
+    if (busyNow.current) return;
+    if (k === "del") return setEntered(entered.current.slice(0, -1));
+    const next = (entered.current + k).slice(0, 4);
+    setEntered(next);
     if (next.length === 4) void submit(next);
   };
+
+  // Hardware keyboard: digits (top row or numpad), Backspace/Delete, Escape to cancel. Captured and
+  // swallowed so keys don't also reach a field underneath the overlay.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // e.code covers the number pad with Num Lock off, where e.key is an arrow or Home/End
+      const numpad = /^Numpad([0-9])$/.exec(e.code);
+      if (/^[0-9]$/.test(e.key)) press(e.key);
+      else if (numpad) press(numpad[1]);
+      else if (e.key === "Backspace" || e.key === "Delete") press("del");
+      else if (e.key === "Escape" && onCancel) onCancel();
+      else return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  });
 
   return (
     <div className="pin-overlay" role="dialog" aria-label={title ?? "Enter PIN"}>
