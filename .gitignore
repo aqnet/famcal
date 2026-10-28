@@ -14,3 +14,7 @@ coverage/
 
 # OS
 .DS_Store
+
+# TypeScript / Next generated
+*.tsbuildinfo
+next-env.d.ts
