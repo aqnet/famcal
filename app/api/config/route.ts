@@ -27,5 +27,7 @@ export async function GET() {
     hasPin: h.hasPin,
     pinUnlocked: unlocked,
     recentGuests: recent.slice(0, 30),
+    // The server's build; an open display reloads when it no longer matches its own.
+    build: process.env.NEXT_PUBLIC_BUILD_ID,
   });
 }

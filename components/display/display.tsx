@@ -42,6 +42,7 @@ const UNDO_MS = 8_000;
 const PENDING_KEY = "famcal.pendingDeletes";
 const FILTER_KEY = "famcal.accountFilter";
 const LAST_RELOAD_KEY = "famcal.lastReload";
+const RELOADED_FOR_KEY = "famcal.reloadedForBuild";
 
 type PendingDelete = {
   id: string;
@@ -243,10 +244,7 @@ export function Display() {
     if (online) void loadEvents();
   }, [online, loadEvents]);
 
-  // ---- night theme, wake lock, nightly reload ----
-  useEffect(() => {
-    document.documentElement.dataset.theme = night ? "dark" : "light";
-  }, [night]);
+  // ---- wake lock, nightly reload (the theme follows the OS, see globals.css) ----
   useWakeLock(!night);
 
   // ---- pending deletes (FR-13): hidden at once, sent when the undo window ends ----
@@ -293,6 +291,16 @@ export function Display() {
     store.set(LAST_RELOAD_KEY, today);
     window.location.reload();
   }, [now, pending.length, panel]);
+
+  useEffect(() => {
+    // After a deploy, pick up the new build (config is polled every 10 min). Same guards as the nightly
+    // reload, and at most once per build so a mismatch can never loop.
+    const server = config?.build;
+    if (!server || server === process.env.NEXT_PUBLIC_BUILD_ID || pending.length || panel) return;
+    if (store.get(RELOADED_FOR_KEY, "") === server) return;
+    store.set(RELOADED_FOR_KEY, server);
+    window.location.reload();
+  }, [config, pending.length, panel]);
 
   // ---- derived view data ----
   const accounts = useMemo(() => data?.accounts ?? [], [data]);

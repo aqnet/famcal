@@ -61,6 +61,9 @@ export function InfoCard({
                 {stale && <span className="weather-age"> · {age(weather.fetchedAt, now)}</span>}
               </span>
             </span>
+            <span className="weather-lohi">
+              L {Math.round(weather.today.low)}° · H {Math.round(weather.today.high)}°
+            </span>
             <span className="weather-cond">{weather.current.condition}</span>
             {weather.place && <span className="weather-place">{weather.place}</span>}
             {weather.today.summary && (

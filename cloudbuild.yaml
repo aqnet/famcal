@@ -1,0 +1,44 @@
+# Build the image, push it to Artifact Registry and deploy it to Cloud Run (specs/deployment.md).
+# The Supabase URL and publishable key are public values, but they come in as substitutions (set on the
+# trigger or the `gcloud builds submit` command) so this public repo doesn't name the project.
+substitutions:
+  _REGION: us-west1
+  _SERVICE: famcal
+  _REPO: famcal
+  _SUPABASE_URL: ""
+  _SUPABASE_PUBLISHABLE_KEY: ""
+  # Commit for the build ID: SHORT_SHA is set on trigger builds; pass _COMMIT for manual submits.
+  _COMMIT: ""
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg=NEXT_PUBLIC_SUPABASE_URL=${_SUPABASE_URL}
+      - --build-arg=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${_SUPABASE_PUBLISHABLE_KEY}
+      - --build-arg=COMMIT_SHA=${SHORT_SHA}${_COMMIT}
+      - -t=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE}:${BUILD_ID}
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE}:${BUILD_ID}"]
+
+  # Deploy only the new image; the service's env vars, secrets and settings stay as configured.
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE}:${BUILD_ID}
+      - --region=${_REGION}
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE}:${BUILD_ID}
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true

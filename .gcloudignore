@@ -1,0 +1,12 @@
+# What `gcloud builds submit` uploads. Secrets and local state never leave this machine.
+.env*
+!.env.example
+.git
+.gitignore
+.claude
+.next
+node_modules
+coverage
+specs
+db
+*.tsbuildinfo

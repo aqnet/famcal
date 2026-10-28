@@ -150,7 +150,7 @@ Shown to anyone without a session (product spec FR-7–9). On the display it is 
 - **No sign-up link.** Members are invited from Settings.
 - **Set new password** (`/auth/reset`, after an invite or reset link): same card, "Set a password", new password + confirm (min 8 characters), **Save password**.
 - **No access** (signed in, not a famcal member): same card, "This account doesn't have access to the family calendar", the signed-in email, and **Sign out**.
-- Follows the night theme like every other screen.
+- Follows the system light/dark setting like every other screen.
 
 ## Design tokens
 
@@ -174,8 +174,8 @@ Shown to anyone without a session (product spec FR-7–9). On the display it is 
 | `--callout-text` | `#1D4F7E` | Forecast callout text |
 | `--danger` | `#B3261E` | Delete button outline and text |
 
-### Color (dark, night hours)
-Switches automatically during night hours (Settings, default 9 PM–6:30 AM), so the display doesn't light up the room.
+### Color (dark)
+Used whenever the device's system appearance is Dark; there is no time-based switch. To keep the display dark at night, set the iPad to Dark appearance (or Automatic) in iPad Settings → Display & Brightness.
 
 | Token | Hex |
 |---|---|

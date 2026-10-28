@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/auth";
+import { appOrigin } from "@/lib/origin";
 
 export type FormState = { error?: string; message?: string; email?: string };
 
@@ -19,7 +20,7 @@ export async function signIn(_prev: FormState, form: FormData): Promise<FormStat
 
 export async function sendReset(_prev: FormState, form: FormData): Promise<FormState> {
   const email = String(form.get("email") ?? "").trim();
-  const origin = (await headers()).get("origin") ?? "";
+  const origin = appOrigin((await headers()).get("origin") ?? "");
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${origin}/auth/confirm?next=/auth/reset`,
