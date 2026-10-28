@@ -41,6 +41,7 @@ const POLL_MS = 60_000;
 const UNDO_MS = 8_000;
 const PENDING_KEY = "famcal.pendingDeletes";
 const FILTER_KEY = "famcal.accountFilter";
+const MONTH_OPEN_KEY = "famcal.monthOpen";
 const LAST_RELOAD_KEY = "famcal.lastReload";
 const RELOADED_FOR_KEY = "famcal.reloadedForBuild";
 
@@ -83,6 +84,7 @@ export function Display() {
   const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
   const [view, setView] = useState<"week" | "day">("week");
   const [filter, setFilter] = useState<string>("all");
+  const [monthOpen, setMonthOpen] = useState(true); // the month calendar in the info card
   const [panel, setPanel] = useState<Panel | null>(null);
   const [ops, setOps] = useState<Op[]>([]);
   const [pending, setPending] = useState<PendingDelete[]>([]);
@@ -182,6 +184,7 @@ export function Display() {
     void loadWeather();
     void loadPhotos();
     setFilter(store.get(FILTER_KEY, "all"));
+    setMonthOpen(store.get(MONTH_OPEN_KEY, true));
     /* eslint-enable react-hooks/set-state-in-effect */
     const params = new URLSearchParams(window.location.search);
     const g = googleStatusText(params.get("google") ?? undefined);
@@ -669,6 +672,11 @@ export function Display() {
           weekStart={startOfWeek(anchor)}
           month={shownMonth}
           dots={dots}
+          monthOpen={monthOpen}
+          onToggleMonth={() => {
+            setMonthOpen(!monthOpen);
+            store.set(MONTH_OPEN_KEY, !monthOpen);
+          }}
           onShiftMonth={shiftMonth}
           onPickDate={(d) => {
             setAnchor(d);

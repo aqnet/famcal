@@ -70,6 +70,7 @@ A dedicated card. Nothing sits over the photos.
 - The week shown on the right gets a `--week-band` band. Tapping a date jumps the week view there.
 - Days outside the month: `--text-3` at weight 400 (in-month days are `--text` at 600).
 - **Event dots:** up to 3 dots (5pt) under each date, one per calendar with events that day.
+- **Fold:** a chevron at the end of the month header hides or shows the date grid (and the prev/next arrows), animating its height closed in ~0.35 s. The header stays as the way back. The photo mosaic grows into the freed space and, once the size settles, slides in a layout chosen for the new shape (still exact 3:2/2:3 tiles). Remembered per device; opens shown by default.
 
 ## Photo mosaic (left column, bottom)
 Family photos are 3:2 (landscape) or 2:3 (portrait), so every tile is exactly one of those shapes. The mosaic is a stack of full-width bands, chosen to fit the space the device leaves (`lib/mosaic-layout.ts`):

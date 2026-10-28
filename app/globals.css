@@ -538,6 +538,32 @@ a {
   margin: -8px -10px 2px 0;
 }
 
+/* Folding the month: the grid's row closes to nothing and the photos below grow into the space. */
+.month-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.month-body > .month-grid {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.month.is-folded .month-body {
+  grid-template-rows: 0fr;
+}
+
+.month.is-folded .month-head {
+  margin-bottom: -8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .month-body {
+    transition: none;
+  }
+}
+
 .month-title {
   flex: 1;
   font-size: 18px;

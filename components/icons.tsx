@@ -18,10 +18,12 @@ export function CloseIcon({ size = 24 }: P) {
   );
 }
 
-export function ChevronIcon({ size = 24, dir }: P & { dir: "left" | "right" }) {
+const CHEVRON = { left: "M15 5l-7 7 7 7", right: "M9 5l7 7-7 7", up: "M5 15l7-7 7 7", down: "M5 9l7 7 7-7" };
+
+export function ChevronIcon({ size = 24, dir }: P & { dir: keyof typeof CHEVRON }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden {...stroke}>
-      <path d={dir === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
+      <path d={CHEVRON[dir]} />
     </svg>
   );
 }
