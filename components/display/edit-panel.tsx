@@ -129,7 +129,8 @@ export function EditPanel({
     onDelete(scope ?? "this", event?.attendees.length ? true : false);
   };
 
-  const { start } = draftTimes(d);
+  const { start, end: endsAt } = draftTimes(d);
+  const minutes = Math.round((endsAt.getTime() - start.getTime()) / 60_000);
   const forecast = d.outdoor ? eventForecast(weather, start) : null;
   const hourCode =
     forecast && weather?.hourly.find((h) => h.time.slice(0, 13) === `${d.day}T${d.start.slice(0, 2)}`)?.code;
@@ -262,11 +263,20 @@ export function EditPanel({
                   ["30 min", 30],
                   ["1 h", 60],
                   ["2 h", 120],
-                ].map(([label, mins]) => (
-                  <button key={label} className="btn btn-chip" onClick={() => setDuration(mins as number)}>
-                    {label}
-                  </button>
-                ))}
+                ].map(([label, mins]) => {
+                  // selected whenever the event is that long, however the length was set
+                  const on = !d.allDay && minutes === mins;
+                  return (
+                    <button
+                      key={label}
+                      className={`btn btn-chip${on ? " is-on" : ""}`}
+                      aria-pressed={on}
+                      onClick={() => setDuration(mins as number)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
                 <button
                   className={`btn btn-chip${d.allDay ? " is-on" : ""}`}
                   aria-pressed={d.allDay}
