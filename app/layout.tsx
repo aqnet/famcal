@@ -6,9 +6,10 @@ import "./globals.css";
 const manrope = Manrope({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Family Calendar",
+  title: "FamCal",
   description: "The family's week, weather and photos on the kitchen iPad.",
-  appleWebApp: { capable: true, title: "Family Calendar", statusBarStyle: "default" },
+  // Icons come from the app/ file conventions: favicon.ico, icon.svg, apple-icon.png.
+  appleWebApp: { capable: true, title: "FamCal", statusBarStyle: "default" },
   formatDetection: { telephone: false, email: false, address: false, date: false },
 };
 

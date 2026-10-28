@@ -44,7 +44,12 @@ export function LoginCard({ next }: { next: string }) {
   return (
     <form className="auth-card" action={signInAction}>
       <div>
-        <h1 className="auth-title">Family Calendar</h1>
+        <h1 className="auth-logo">
+          <picture>
+            <source srcSet="/famcal-logo-dark.svg" media="(prefers-color-scheme: dark)" />
+            <img src="/famcal-logo.svg" alt="FamCal" width={198} height={64} />
+          </picture>
+        </h1>
         <p className="auth-subtitle">Sign in to continue</p>
       </div>
       <input type="hidden" name="next" value={next} />

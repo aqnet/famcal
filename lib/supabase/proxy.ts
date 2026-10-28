@@ -3,7 +3,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import { appOrigin } from "@/lib/origin";
 
 const PUBLIC_PREFIXES = ["/login", "/auth/"];
-const PUBLIC_FILES = ["/manifest.webmanifest", "/sw.js", "/icon.svg", "/apple-icon.png", "/favicon.ico"];
+// Served without a session: the browser and iOS fetch these before (or without) signing in.
+const PUBLIC_FILES = [
+  "/manifest.webmanifest",
+  "/sw.js",
+  "/favicon.ico",
+  "/icon.svg",
+  "/apple-icon.png",
+  "/famcal-mark.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/famcal-logo.svg",
+  "/famcal-logo-dark.svg",
+];
 
 export function isPublicPath(pathname: string): boolean {
   return PUBLIC_FILES.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
