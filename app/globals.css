@@ -337,6 +337,11 @@ a {
   font-weight: 800;
 }
 
+.auth-logo {
+  margin: 0 0 4px;
+  line-height: 0;
+}
+
 .auth-subtitle {
   margin: 4px 0 0;
   font-size: 17px;
