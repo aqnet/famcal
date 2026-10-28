@@ -13,6 +13,7 @@ import {
   type TimedPlacement,
 } from "@/lib/calendar-model";
 import { fmtHour, fmtTimeShort } from "@/lib/format";
+import { reducedMotion, slideIn } from "./hooks";
 
 export const GRID_START = 6; // 6 AM
 export const GRID_END = 22; // 10 PM
@@ -101,7 +102,7 @@ export function CalendarGrid({
   const card = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const [hourH, setHourH] = useState(56);
-  const swipe = useRef<{ x: number; y: number; id: number } | null>(null);
+  const swipe = useRef<{ x: number; y: number; id: number; horizontal: boolean } | null>(null);
   const suppressClick = useRef(0);
   const dayView = days.length === 1;
 
@@ -129,6 +130,35 @@ export function CalendarGrid({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // Paging: on touch the week follows the finger, slides out when the swipe commits, and the next one
+  // slides in from the other side. The arrows, Today and tapping a date get the same slide in.
+  const pages = () => [
+    ...(card.current?.querySelectorAll<HTMLElement>(
+      ":scope > .cal-head, :scope > .allday, :scope > .cal-scroll",
+    ) ?? []),
+  ];
+  const follow = (dx: number) =>
+    pages().forEach((el) => (el.style.transform = dx ? `translateX(${dx}px)` : ""));
+  const settle = (from: number, to: number, ms: number) =>
+    Promise.all(
+      pages().map((el) => {
+        el.style.transform = "";
+        return el.animate([{ transform: `translateX(${from}px)` }, { transform: `translateX(${to}px)` }], {
+          duration: reducedMotion() ? 0 : ms,
+          easing: "cubic-bezier(0.3, 0.7, 0.4, 1)",
+          fill: "forwards",
+        }).finished;
+      }),
+    ).catch(() => undefined);
+  const shownPage = useRef({ first: days[0].getTime(), count: days.length });
+  useLayoutEffect(() => {
+    const prev = shownPage.current;
+    const first = days[0].getTime();
+    shownPage.current = { first, count: days.length };
+    if (prev.first === first || prev.count !== days.length) return;
+    slideIn(pages(), first > prev.first ? 1 : -1, (card.current?.clientWidth ?? 600) * 0.3);
+  }, [days]);
 
   // Open at 7 AM, and drift back there after 60 s without scrolling.
   useEffect(() => {
@@ -246,7 +276,7 @@ export function CalendarGrid({
     dragged.current = false;
   };
   const onPointerDown = (e: React.PointerEvent) => {
-    swipe.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    swipe.current = { x: e.clientX, y: e.clientY, id: e.pointerId, horizontal: false };
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const p = press.current;
@@ -257,6 +287,17 @@ export function CalendarGrid({
         press.current = null;
         p.begin(p.y);
       }
+    }
+    const s = swipe.current;
+    if (s && s.id === e.pointerId && e.pointerType !== "mouse" && !dragRef.current && !dragged.current) {
+      const dx = e.clientX - s.x;
+      if (
+        !s.horizontal &&
+        Math.abs(dx) > 12 &&
+        Math.abs(e.clientY - s.y) < Math.abs(dx) * Math.tan(Math.PI / 6)
+      )
+        s.horizontal = true;
+      if (s.horizontal) follow(dx);
     }
     const d = dragRef.current;
     if (!d || d.pointerId !== e.pointerId) return;
@@ -313,10 +354,15 @@ export function CalendarGrid({
     // ≥ 60 pt horizontal travel at < 30° from horizontal (product spec → Touch rules)
     if (Math.abs(dx) >= 60 && Math.abs(dy) < Math.abs(dx) * Math.tan(Math.PI / 6)) {
       suppressClick.current = e.timeStamp;
-      onSwipe(dx < 0 ? 1 : -1);
-    }
+      const dir = dx < 0 ? 1 : -1;
+      if (s.horizontal) {
+        const width = card.current?.clientWidth ?? 600;
+        void settle(dx, -dir * width, 180).then(() => onSwipe(dir));
+      } else onSwipe(dir);
+    } else if (s.horizontal) void settle(dx, 0, 220);
   };
   const onPointerCancel = () => {
+    if (swipe.current?.horizontal) follow(0);
     swipe.current = null;
     cancelPress();
     setDrag(null);

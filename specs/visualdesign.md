@@ -72,16 +72,20 @@ A dedicated card. Nothing sits over the photos.
 - **Event dots:** up to 3 dots (5pt) under each date, one per calendar with events that day.
 
 ## Photo mosaic (left column, bottom)
-| # | Column | Row | Shape |
-|---|---|---|---|
-| 1 | 1 / 3 | 1 / 4 | Full-width hero |
-| 2 | 1 | 4 / 6 | 1×2 tall |
-| 3 | 2 | 4 | 1×1 |
-| 4 | 2 | 5 / 7 | 1×2 tall |
-| 5 | 1 | 6 | 1×1 |
+Family photos are 3:2 (landscape) or 2:3 (portrait), so every tile is exactly one of those shapes. The mosaic is a stack of full-width bands, chosen to fit the space the device leaves (`lib/mosaic-layout.ts`):
 
-- Tiles use `object-fit: cover`. Put a landscape photo in the hero and portraits in the tall slots.
-- Every 20 s (configurable) one tile cross-fades to a new photo (~600 ms, opacity only). Every 10 minutes all five are re-picked, still fading one tile at a time, never all at once.
+| Band | Tiles |
+|---|---|
+| H | one full-width 3:2 hero |
+| LL | two 3:2 side by side |
+| PPP | three 2:3 side by side |
+| PLL / LLP | a 2:3 beside two stacked 3:2 (either side) |
+
+The stack (up to four bands; only LL may repeat, as a 2×2 grid) is the one closest to the space's shape, pulled toward about five tiles and toward the gallery's mix: no more portrait (or landscape) tiles than there are photos of that orientation, ideally half as many so rotation has spares. Any small difference is a light stretch shared by every tile. With a typical mix: 13" landscape LL + PLL, 11" landscape LL + PPP, 13" portrait H + PLL + H, 11" portrait H + PPP + H, each 5 tiles. A gallery with only a couple of portraits gets e.g. LL + LL on the 11".
+
+- Tiles use `object-fit: cover`, centered, with a 4 px gap. Each tile gets a photo of its own orientation, so a photo fills its tile uncropped.
+- Every 20 s (configurable) one tile flips over like a card to a new photo (~1.2 s, 3D turn with a slight overshoot; instant with Reduce Motion). Every 10 minutes every tile is re-picked, still flipping one at a time, never all at once.
+- Once every tile has flipped to a new photo, the next tick changes the layout: the mosaic slides up and out as another layout slides up in from below (~0.9 s, a 4 px gap between them), with photos the old layout wasn't showing where possible. The next layout is a random different pick from the layouts nearly as good as the best for the space and the gallery's mix, none stretching its tiles more than ~12% (`layoutChoices`). With Reduce Motion it swaps instantly.
 - Tap a tile: full-screen photo with caption and date taken; tap again or wait 30 s to return.
 - While the edit panel is open the mosaic sits underneath it; at night it dims to 50% opacity.
 
