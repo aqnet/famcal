@@ -3,8 +3,9 @@
 import { addDays, monthGrid, startOfDay, startOfWeek, ymd } from "@/lib/calendar-model";
 import { age, fmtDateLong, fmtMonthYear } from "@/lib/format";
 import type { Weather } from "@/lib/weather-model";
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ChevronIcon, WeatherIcon } from "@/components/icons";
+import { slideIn } from "./hooks";
 
 const STALE_MS = 2 * 3600_000;
 
@@ -37,6 +38,31 @@ export function InfoCard({
   // Swipe the month grid to page months; the tap that ends a swipe must not also pick a day.
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const swipedAt = useRef(0);
+
+  // One band marks the shown week and glides to its new row when the week changes; paging to another
+  // month slides the grid in from that side instead.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [band, setBand] = useState<{ top: number; height: number; glide: boolean } | null>(null);
+  const shownMonth = useRef(month.getTime());
+  const weekKey = ymd(weekStart);
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const paged = shownMonth.current !== month.getTime();
+    if (paged) slideIn([grid], month.getTime() > shownMonth.current ? 1 : -1, 40);
+    shownMonth.current = month.getTime();
+    const measure = (glide: boolean) => {
+      const cell = grid.querySelector<HTMLElement>(".month-day.is-week");
+      setBand(cell ? { top: cell.offsetTop, height: cell.offsetHeight, glide } : null);
+    };
+    measure(!paged);
+    // Rotation or a shorter screen changes the row height; follow it without gliding.
+    // (The observer also fires once on observe; skip that so this change still glides.)
+    let first = true;
+    const ro = new ResizeObserver(() => (first ? (first = false) : measure(false)));
+    ro.observe(grid);
+    return () => ro.disconnect();
+  }, [month, weekKey]);
 
   return (
     <section className="info-card" aria-label="Today">
@@ -90,6 +116,7 @@ export function InfoCard({
           </button>
         </div>
         <div
+          ref={gridRef}
           className="month-grid"
           role="grid"
           onPointerDown={(e) => (swipe.current = { x: e.clientX, y: e.clientY })}
@@ -105,6 +132,13 @@ export function InfoCard({
             }
           }}
         >
+          {band && (
+            <div
+              className={`month-band${band.glide ? " is-gliding" : ""}`}
+              style={{ transform: `translateY(${band.top}px)`, height: band.height }}
+              aria-hidden
+            />
+          )}
           {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
             <div key={i} className="month-weekday" aria-hidden>
               {d}
@@ -114,17 +148,10 @@ export function InfoCard({
             const key = ymd(d);
             const inMonth = d.getMonth() === month.getMonth();
             const inWeek = weekKeys.has(key);
-            const col = d.getDay();
             return (
               <button
                 key={key}
-                className={[
-                  "month-day",
-                  inMonth ? "" : "is-out",
-                  inWeek ? "is-week" : "",
-                  inWeek && col === 0 ? "is-week-start" : "",
-                  inWeek && col === 6 ? "is-week-end" : "",
-                ].join(" ")}
+                className={["month-day", inMonth ? "" : "is-out", inWeek ? "is-week" : ""].join(" ")}
                 onClick={(e) => e.timeStamp - swipedAt.current > 400 && onPickDate(startOfDay(d))}
                 aria-label={d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
               >

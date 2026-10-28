@@ -74,3 +74,22 @@ export function useWakeLock(enabled: boolean) {
     };
   }, [enabled]);
 }
+
+export const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Slide elements in from one side (dir 1: from the right, -1: from the left), replacing whatever
+// transform or animation they had. Used when the week or month pages.
+export function slideIn(els: HTMLElement[], dir: 1 | -1, distance: number) {
+  for (const el of els) {
+    el.getAnimations().forEach((a) => a.cancel());
+    el.style.transform = "";
+    if (reducedMotion()) continue;
+    el.animate(
+      [
+        { transform: `translateX(${dir * distance}px)`, opacity: 0.2 },
+        { transform: "none", opacity: 1 },
+      ],
+      { duration: 280, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+    );
+  }
+}
