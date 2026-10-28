@@ -15,6 +15,8 @@ export function InfoCard({
   weekStart,
   month,
   dots,
+  monthOpen,
+  onToggleMonth,
   onShiftMonth,
   onPickDate,
   onOpenForecast,
@@ -24,6 +26,8 @@ export function InfoCard({
   weekStart: Date;
   month: Date;
   dots: Map<string, string[]>;
+  monthOpen: boolean;
+  onToggleMonth: () => void;
   onShiftMonth: (dir: 1 | -1) => void;
   onPickDate: (d: Date) => void;
   onOpenForecast: () => void;
@@ -101,69 +105,94 @@ export function InfoCard({
         )}
       </div>
 
-      <div className="month">
+      {/* The month grid can fold away (remembered per device) so the photos get its space; the
+          header stays as the way back. */}
+      <div className={`month${monthOpen ? "" : " is-folded"}`}>
         <div className="month-head">
           <div className="month-title">{fmtMonthYear(month)}</div>
+          {monthOpen && (
+            <>
+              <button
+                className="icon-btn icon-btn-44"
+                aria-label="Previous month"
+                onClick={() => onShiftMonth(-1)}
+              >
+                <ChevronIcon dir="left" size={20} />
+              </button>
+              <button
+                className="icon-btn icon-btn-44"
+                aria-label="Next month"
+                onClick={() => onShiftMonth(1)}
+              >
+                <ChevronIcon dir="right" size={20} />
+              </button>
+            </>
+          )}
           <button
             className="icon-btn icon-btn-44"
-            aria-label="Previous month"
-            onClick={() => onShiftMonth(-1)}
+            aria-label={monthOpen ? "Hide month" : "Show month"}
+            aria-expanded={monthOpen}
+            aria-controls="month-body"
+            onClick={onToggleMonth}
           >
-            <ChevronIcon dir="left" size={20} />
-          </button>
-          <button className="icon-btn icon-btn-44" aria-label="Next month" onClick={() => onShiftMonth(1)}>
-            <ChevronIcon dir="right" size={20} />
+            <ChevronIcon dir={monthOpen ? "up" : "down"} size={20} />
           </button>
         </div>
-        <div
-          ref={gridRef}
-          className="month-grid"
-          role="grid"
-          onPointerDown={(e) => (swipe.current = { x: e.clientX, y: e.clientY })}
-          onPointerCancel={() => (swipe.current = null)}
-          onPointerUp={(e) => {
-            const s = swipe.current;
-            swipe.current = null;
-            if (!s) return;
-            const dx = e.clientX - s.x;
-            if (Math.abs(dx) >= 40 && Math.abs(e.clientY - s.y) < Math.abs(dx)) {
-              swipedAt.current = e.timeStamp;
-              onShiftMonth(dx < 0 ? 1 : -1);
-            }
-          }}
-        >
-          {band && (
-            <div
-              className={`month-band${band.glide ? " is-gliding" : ""}`}
-              style={{ transform: `translateY(${band.top}px)`, height: band.height }}
-              aria-hidden
-            />
-          )}
-          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-            <div key={i} className="month-weekday" aria-hidden>
-              {d}
-            </div>
-          ))}
-          {grid.map((d) => {
-            const key = ymd(d);
-            const inMonth = d.getMonth() === month.getMonth();
-            const inWeek = weekKeys.has(key);
-            return (
-              <button
-                key={key}
-                className={["month-day", inMonth ? "" : "is-out", inWeek ? "is-week" : ""].join(" ")}
-                onClick={(e) => e.timeStamp - swipedAt.current > 400 && onPickDate(startOfDay(d))}
-                aria-label={d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-              >
-                <span className={`month-num${key === today ? " is-today" : ""}`}>{d.getDate()}</span>
-                <span className="month-dots">
-                  {(dots.get(key) ?? []).slice(0, 3).map((c, i) => (
-                    <span key={i} className="dot" style={{ background: c }} />
-                  ))}
-                </span>
-              </button>
-            );
-          })}
+        <div className="month-body" id="month-body" inert={!monthOpen}>
+          <div
+            ref={gridRef}
+            className="month-grid"
+            role="grid"
+            onPointerDown={(e) => (swipe.current = { x: e.clientX, y: e.clientY })}
+            onPointerCancel={() => (swipe.current = null)}
+            onPointerUp={(e) => {
+              const s = swipe.current;
+              swipe.current = null;
+              if (!s) return;
+              const dx = e.clientX - s.x;
+              if (Math.abs(dx) >= 40 && Math.abs(e.clientY - s.y) < Math.abs(dx)) {
+                swipedAt.current = e.timeStamp;
+                onShiftMonth(dx < 0 ? 1 : -1);
+              }
+            }}
+          >
+            {band && (
+              <div
+                className={`month-band${band.glide ? " is-gliding" : ""}`}
+                style={{ transform: `translateY(${band.top}px)`, height: band.height }}
+                aria-hidden
+              />
+            )}
+            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+              <div key={i} className="month-weekday" aria-hidden>
+                {d}
+              </div>
+            ))}
+            {grid.map((d) => {
+              const key = ymd(d);
+              const inMonth = d.getMonth() === month.getMonth();
+              const inWeek = weekKeys.has(key);
+              return (
+                <button
+                  key={key}
+                  className={["month-day", inMonth ? "" : "is-out", inWeek ? "is-week" : ""].join(" ")}
+                  onClick={(e) => e.timeStamp - swipedAt.current > 400 && onPickDate(startOfDay(d))}
+                  aria-label={d.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                >
+                  <span className={`month-num${key === today ? " is-today" : ""}`}>{d.getDate()}</span>
+                  <span className="month-dots">
+                    {(dots.get(key) ?? []).slice(0, 3).map((c, i) => (
+                      <span key={i} className="dot" style={{ background: c }} />
+                    ))}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

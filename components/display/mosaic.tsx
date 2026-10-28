@@ -74,17 +74,28 @@ export function Mosaic({
     const measure = () => {
       if (!el.clientWidth || !el.clientHeight) return;
       choices.current = layoutChoices(el.clientWidth, el.clientHeight, mix);
-      // Keep the current layout while it still suits the space; otherwise switch at once.
+      // Keep the current layout while it still suits the space; otherwise slide in the best one for
+      // the new shape (or just show it, the first time).
       setLayers((prev) => {
         const cur = prev.find((l) => !l.leaving);
         if (cur && choices.current.some((c) => c.name === cur.layout.name)) return prev;
-        return [{ id: nextId.current++, layout: choices.current[0], avoid: [], leaving: false }];
+        const next = { id: nextId.current++, layout: choices.current[0], avoid: [], leaving: false };
+        return !cur || reducedMotion() ? [next] : [{ ...cur, leaving: true }, next];
       });
     };
     measure();
-    const ro = new ResizeObserver(measure);
+    // While the space is animating (the month folding away, a rotation) the tiles just stretch with
+    // it; the layout is re-chosen once the size has settled.
+    let settle: ReturnType<typeof setTimeout>;
+    const ro = new ResizeObserver(() => {
+      clearTimeout(settle);
+      settle = setTimeout(measure, 150);
+    });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      clearTimeout(settle);
+      ro.disconnect();
+    };
   }, [photos]);
 
   // Every photo on screen has changed over: slide in another layout, with photos not just shown.
