@@ -8,6 +8,7 @@ import { geocodeZip } from "@/lib/weather";
 import { resolveSource, SmugMugError } from "@/lib/smugmug";
 import { isAllowedCalendarColor } from "@/lib/colors";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { appOrigin } from "@/lib/origin";
 
 export const dynamic = "force-dynamic";
 
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest) {
         .trim()
         .toLowerCase();
       if (!EMAIL.test(email)) return bad("Enter an email address.");
-      const origin = request.nextUrl.origin;
+      const origin = appOrigin(request.nextUrl.origin);
       const admin = createAdminClient();
       const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
         redirectTo: `${origin}/auth/confirm?next=/auth/reset`,

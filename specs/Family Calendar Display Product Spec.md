@@ -84,7 +84,7 @@ Viewport figures are approximate and get verified on device in the Phase 0 spike
 - One breakpoint system: `≥ 1024pt wide` = desktop layout; `< 600pt` = mobile layout (future); between = desktop layout with fewer columns.
 - Respect safe-area insets; no content under the Home indicator.
 - Viewing distance: from 2–3 m you can read the clock, today's date, and which days are busy for whom (calendar colours). Event titles (16pt) and times (14pt) are read at arm's length.
-- Light and dark themes; dark auto-enables during night hours so the display doesn't light up the room.
+- Light and dark themes, following the device's system appearance setting.
 
 **Views**
 
@@ -238,7 +238,7 @@ A thin Next.js server on the TypeScript / Supabase stack sits between the iPad a
 **Reliability (it's an appliance)**
 
 - Runs 30 days unattended with no manual reload. A service worker caches the app shell, the font, the last 4 weeks of events and the current photo set, so a Wi-Fi drop shows stale data with a "last synced" stamp, not a blank screen.
-- Keep the screen on with the Screen Wake Lock API during day hours; night hours switch to the dark theme. Wake Lock in Home Screen web apps has been unreliable on some iPadOS versions, so the Phase 0 spike verifies it; the fallback is iPad Settings → Display → Auto-Lock: Never, plus Guided Access.
+- Keep the screen on with the Screen Wake Lock API during day hours and release it during night hours. Wake Lock in Home Screen web apps has been unreliable on some iPadOS versions, so the Phase 0 spike verifies it; the fallback is iPad Settings → Display → Auto-Lock: Never, plus Guided Access.
 - Auto-reload once a night at 3:00 to clear memory leaks (after flushing any pending delete, FR-13).
 - Hosting: if Supabase is on the free tier, note that inactive projects are paused after about a week; the display's regular reads keep it active, but confirm in the spike or use a paid plan.
 

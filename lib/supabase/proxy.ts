@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { appOrigin } from "@/lib/origin";
 
 const PUBLIC_PREFIXES = ["/login", "/auth/"];
 const PUBLIC_FILES = ["/manifest.webmanifest", "/sw.js", "/icon.svg", "/apple-icon.png", "/favicon.ico"];
@@ -41,9 +42,7 @@ export async function updateSession(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
     }
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = "";
+    const url = new URL("/login", appOrigin(request.nextUrl.origin));
     if (pathname !== "/") url.searchParams.set("next", pathname + search);
     const redirect = NextResponse.redirect(url);
     response.cookies.getAll().forEach((c) => redirect.cookies.set(c));

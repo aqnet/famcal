@@ -1,5 +1,5 @@
-/* Design tokens: visualdesign.md → Design tokens. Light by default; dark during night hours
-   (the display sets data-theme) and for auth screens when the OS is dark. */
+/* Design tokens: visualdesign.md → Design tokens. Every screen follows the OS light/dark setting;
+   data-theme on <html> can force one. */
 :root {
   --bg: #f7f6f2;
   --surface: #ffffff;
@@ -59,6 +59,7 @@
     --callout: #1a2633;
     --callout-text: #b9d6f2;
     --danger: #f2867e;
+    --shadow: 0 12px 40px rgb(0 0 0 / 0.5);
     color-scheme: dark;
   }
 }
@@ -475,6 +476,7 @@ a {
   font-weight: 600;
 }
 
+.weather-lohi,
 .weather-cond,
 .weather-place,
 .weather-summary {
@@ -493,6 +495,15 @@ a {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-3);
+}
+
+/* Today's low and high, small and grey, right under the current temperature. */
+.weather-lohi {
+  margin-top: -2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
 }
 
 .weather-summary {

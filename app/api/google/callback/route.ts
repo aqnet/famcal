@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireMemberApi } from "@/lib/auth";
 import { connectFailure, exchangeCode, saveAccount } from "@/lib/google";
+import { appOrigin } from "@/lib/origin";
 
 export async function GET(request: NextRequest) {
   const member = await requireMemberApi();
   if (member instanceof NextResponse) return member;
 
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = appOrigin(request.nextUrl.origin);
   const state = request.cookies.get("famcal_oauth_state")?.value;
   const back = (status: string) => {
     const res = NextResponse.redirect(new URL(`/?google=${status}`, origin));

@@ -1,0 +1,15 @@
+# Keep secrets and local state out of the image build context.
+.env*
+!.env.example
+.git
+.claude
+.next
+node_modules
+coverage
+specs
+db
+*.tsbuildinfo
+Dockerfile
+.dockerignore
+.gcloudignore
+cloudbuild.yaml

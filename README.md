@@ -37,3 +37,9 @@ Setup checklist:
 ## Scripts
 
 `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck` · `npm test` · `npm run format`
+
+## Deploy
+
+Production runs on Google Cloud Run: `Dockerfile` (Next.js standalone), `cloudbuild.yaml` (build, push,
+deploy), secrets in Secret Manager, `APP_ORIGIN` and `TZ` set on the service. Pushes to `main` deploy
+automatically. Setup, configuration and rollback: [deployment spec](specs/deployment.md).

@@ -16,4 +16,5 @@ export type Config = {
   hasPin: boolean;
   pinUnlocked: boolean;
   recentGuests: string[];
+  build: string;
 };

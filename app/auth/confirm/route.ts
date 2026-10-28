@@ -2,11 +2,13 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/auth";
+import { appOrigin } from "@/lib/origin";
 
 // Landing route for email links (password reset, invites). Handles all three shapes Supabase
 // can send: token_hash (custom templates), ?code= (PKCE), or tokens in the URL fragment.
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = appOrigin(request.nextUrl.origin);
   const next = safeNext(searchParams.get("next"), "/auth/reset");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
