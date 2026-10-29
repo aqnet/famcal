@@ -109,7 +109,7 @@ Viewport figures are approximate and get verified on device in the Phase 0 spike
 **Calendar**
 
 - FR-10: Show events from the chosen calendars across all connected accounts, colour-coded per calendar (e.g. one per person). Calendar colours may not reuse the accent or rain colours (visualdesign.md).
-- FR-11: Create: tap **+ Add** or an empty 30-minute slot → edit panel prefilled with that day and time (or the next half hour), 1 h default; title, day/start/end with duration chips, all-day toggle, calendar picker, outdoor toggle, and under "More": location, guests (FR-60), notes.
+- FR-11: Create: tap **+ Add** or an empty 30-minute slot → edit panel prefilled with that day and time (or the next half hour), 1 h default; title, day/start/end with duration chips, all-day toggle, calendar picker, outdoor toggle, notify toggle (FR-11a), and under "More": location, guests (FR-60), notes.
 - FR-12: Edit: tap an event → edit panel prefilled. All fields from FR-11 are editable. Read-only events open in detail mode with no Save or Delete.
 - FR-13: Delete: from the edit panel, no confirmation dialog. The event disappears at once and an Undo toast shows for 8 s; the API delete is sent when the toast expires. The pending delete is saved on the device, so if the app reloads during the window it is sent on next start (and the event stays hidden until then).
 - FR-14: Recurring events: edit or delete "This event" or "All events" (v1), chosen in an inline row in the panel; "This and following" is v2.
@@ -170,6 +170,7 @@ Current weather sits in the info card, right of the clock (visualdesign.md), so 
 - FR-41: On save, the server converts the ZIP to latitude/longitude once and stores it with a place name (e.g. "Springfield, IL"). Settings shows that name so a mistyped ZIP is obvious; an unknown ZIP is rejected.
 - FR-42: Compact view in the info card: condition icon, current temperature, condition, today's high/low, and a one-line summary (e.g. "Tapering by 2 PM").
 - FR-43: Tap the weather block → a forecast sheet with the hourly forecast for the next 12 hours and a 5-day daily forecast; tap outside or wait 30 s to close.
+- FR-11a: Notify: a switch in the edit panel sets a Google Calendar pop-up reminder on the event, so phones and computers signed in to that calendar's Google account alert before it starts. New events default to on, 10 minutes before (choices 5 min, 10 min, 30 min, 1 h); all-day events offer the day before at 5 PM or 9 AM, since their start is midnight. Turning it off removes the event's reminders. Opening an event shows its earliest pop-up reminder, or the calendar's default when the event uses defaults; the reminder is only written back when the switch or lead time was changed, so reminders set in Google Calendar are not overwritten by unrelated edits. The wall display itself doesn't alert.
 - FR-44: Outdoor events within the next 7 days show a forecast tag ("Rain 60% · 52°" or "Dry · 54°") from the hourly forecast at the event's start time, and the edit panel shows the same forecast as a callout. Tags are hidden on weeks beyond that range.
 - FR-45: Refresh every 15 minutes, cached on the server; if the provider is unreachable, show the last reading with its age and grey it out after 2 hours.
 - FR-46: Data attribution line in the forecast sheet, as the provider's licence requires.

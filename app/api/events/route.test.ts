@@ -92,6 +92,9 @@ describe("POST validation", () => {
       { allDay: true, start: "2026-10-31", end: "2026-10-31" },
       { allDay: true, start: "Oct 31", end: "Nov 1" },
       { guests: ["not-an-email"] },
+      { reminder: -5 },
+      { reminder: 40321 }, // over Google's four weeks
+      { reminder: "10" },
     ]) {
       expect((await create(bad)).status, JSON.stringify(bad)).toBe(400);
     }

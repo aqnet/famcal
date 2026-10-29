@@ -5,6 +5,7 @@ import {
   OUTDOOR_PROP,
   type CalEvent,
   type GoogleEvent,
+  type Reminder,
   type RsvpStatus,
 } from "@/lib/calendar-model";
 import { db } from "@/lib/db";
@@ -44,23 +45,25 @@ export async function listEvents(timeMin: string, timeMax: string): Promise<Even
       .map(async (cal) => {
         try {
           const items: GoogleEvent[] = [];
+          let defaultReminders: Reminder[] | undefined;
           let pageToken: string | undefined;
           do {
-            const page = await gcal<{ items?: GoogleEvent[]; nextPageToken?: string }>(
-              cal.accountId,
-              `/calendars/${encodeURIComponent(cal.calendarId)}/events`,
-              {
-                query: {
-                  timeMin,
-                  timeMax,
-                  singleEvents: "true",
-                  orderBy: "startTime",
-                  maxResults: "2500",
-                  pageToken,
-                },
+            const page = await gcal<{
+              items?: GoogleEvent[];
+              nextPageToken?: string;
+              defaultReminders?: Reminder[];
+            }>(cal.accountId, `/calendars/${encodeURIComponent(cal.calendarId)}/events`, {
+              query: {
+                timeMin,
+                timeMax,
+                singleEvents: "true",
+                orderBy: "startTime",
+                maxResults: "2500",
+                pageToken,
               },
-            );
+            });
             items.push(...(page.items ?? []));
+            defaultReminders = page.defaultReminders ?? defaultReminders;
             pageToken = page.nextPageToken;
           } while (pageToken);
           const account = byAccount.get(cal.accountId)!;
@@ -71,6 +74,7 @@ export async function listEvents(timeMin: string, timeMax: string): Promise<Even
               calendarId: cal.calendarId,
               accessRole: cal.accessRole,
               isFamily: account.isFamily,
+              defaultReminders,
             });
             return e ? [e] : [];
           });
@@ -125,6 +129,7 @@ export type EventInput = {
   guestsCanInviteOthers?: boolean;
   guestsCanSeeOtherGuests?: boolean;
   guestsCanModify?: boolean;
+  reminder?: number | null; // pop-up minutes before; null turns reminders off; absent leaves them as they are
 };
 
 export type EventRef = { accountId: string; calendarId: string; eventId: string; recurringEventId?: string };
@@ -165,6 +170,12 @@ function bodyFrom(input: EventInput, current?: GoogleEvent) {
     guestsCanSeeOtherGuests: input.guestsCanSeeOtherGuests,
     guestsCanModify: input.guestsCanModify,
     extendedProperties: { private: { [OUTDOOR_PROP]: input.outdoor ? "1" : "0" } },
+    ...(input.reminder !== undefined && {
+      reminders: {
+        useDefault: false,
+        overrides: input.reminder === null ? [] : [{ method: "popup", minutes: input.reminder }],
+      },
+    }),
   };
 }
 

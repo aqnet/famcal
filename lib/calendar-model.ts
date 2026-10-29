@@ -32,6 +32,7 @@ export type CalEvent = {
   guestsCanInviteOthers: boolean;
   guestsCanSeeOtherGuests: boolean;
   guestsCanModify: boolean;
+  reminder: number | null; // minutes before the start of the earliest pop-up reminder, or null for none
 };
 
 // The subset of a Google Calendar event resource we read.
@@ -59,13 +60,31 @@ export type GoogleEvent = {
   guestsCanSeeOtherGuests?: boolean;
   guestsCanModify?: boolean;
   extendedProperties?: { private?: Record<string, string> };
+  reminders?: { useDefault?: boolean; overrides?: Reminder[] };
 };
+
+export type Reminder = { method?: string; minutes?: number };
+
+// The earliest pop-up reminder, from the event's own list or the calendar's defaults.
+function popupMinutes(raw: GoogleEvent, defaults: Reminder[] = []): number | null {
+  const list = raw.reminders?.useDefault === false ? (raw.reminders.overrides ?? []) : defaults;
+  const mins = list
+    .filter((r) => r.method === "popup" && typeof r.minutes === "number")
+    .map((r) => r.minutes!);
+  return mins.length ? Math.max(...mins) : null;
+}
 
 export const OUTDOOR_PROP = "famcalOutdoor";
 
 export function normalizeEvent(
   raw: GoogleEvent,
-  ctx: { accountId: string; calendarId: string; accessRole: string; isFamily: boolean },
+  ctx: {
+    accountId: string;
+    calendarId: string;
+    accessRole: string;
+    isFamily: boolean;
+    defaultReminders?: Reminder[];
+  },
 ): CalEvent | null {
   if (raw.status === "cancelled" || !raw.start || !raw.end) return null;
   const allDay = !!raw.start.date;
@@ -115,6 +134,7 @@ export function normalizeEvent(
     guestsCanInviteOthers: raw.guestsCanInviteOthers ?? true,
     guestsCanSeeOtherGuests: raw.guestsCanSeeOtherGuests ?? true,
     guestsCanModify,
+    reminder: busy ? null : popupMinutes(raw, ctx.defaultReminders),
   };
 }
 

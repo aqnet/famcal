@@ -496,6 +496,7 @@ export function Display() {
           guestsCanInviteOthers: true,
           guestsCanSeeOtherGuests: true,
           guestsCanModify: false,
+          reminder: null,
         },
         draft,
       );
