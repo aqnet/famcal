@@ -1,13 +1,16 @@
 "use client";
 
 import { addDays, monthGrid, startOfDay, startOfWeek, ymd } from "@/lib/calendar-model";
-import { age, fmtDateLong, fmtMonthYear } from "@/lib/format";
-import type { Weather } from "@/lib/weather-model";
+import { age, fmtDateLong, fmtMonthYear, fmtTime } from "@/lib/format";
+import { describeCode, isNight, localIso, type Weather } from "@/lib/weather-model";
 import { useLayoutEffect, useRef, useState } from "react";
-import { ChevronIcon, WeatherIcon } from "@/components/icons";
+import { ChevronIcon, SunTimeIcon, WeatherIcon } from "@/components/icons";
 import { slideIn } from "./hooks";
 
 const STALE_MS = 2 * 3600_000;
+
+// "7:24 AM" from Open-Meteo's local "2026-10-28T07:24".
+const sunTime = (localIso: string) => fmtTime(new Date(localIso));
 
 export function InfoCard({
   now,
@@ -37,6 +40,9 @@ export function InfoCard({
   const stale = weather ? now.getTime() - Date.parse(weather.fetchedAt) > STALE_MS : false;
   const grid = monthGrid(month);
   const today = ymd(now);
+  // The icon follows the device clock against today's sunrise and sunset, not the cached reading.
+  const nowIcon = weather && describeCode(weather.current.code, isNight(weather, localIso(now))).icon;
+  const sun = weather?.daily.find((d) => d.date === today);
   const weekKeys = new Set(Array.from({ length: 7 }, (_, i) => ymd(addDays(weekStart, i))));
 
   // Swipe the month grid to page months; the tap that ends a swipe must not also pick a day.
@@ -77,6 +83,18 @@ export function InfoCard({
             <span className="clock-ampm">{ampm}</span>
           </div>
           <div className="info-date">{fmtDateLong(now)}</div>
+          {sun?.sunrise && sun.sunset && (
+            <div className="sun-times">
+              <span aria-label={`Sunrise ${sunTime(sun.sunrise)}`}>
+                <SunTimeIcon dir="rise" />
+                {sunTime(sun.sunrise)}
+              </span>
+              <span aria-label={`Sunset ${sunTime(sun.sunset)}`}>
+                <SunTimeIcon dir="set" />
+                {sunTime(sun.sunset)}
+              </span>
+            </div>
+          )}
         </div>
         {weather && (
           <button
@@ -85,7 +103,7 @@ export function InfoCard({
             aria-label={`Weather: ${weather.current.condition}, ${Math.round(weather.current.temp)} degrees. Open forecast`}
           >
             <span className="weather-now">
-              <WeatherIcon kind={weather.current.icon} size={40} />
+              <WeatherIcon kind={nowIcon!} size={40} />
               <span className="weather-temp">
                 {Math.round(weather.current.temp)}°
                 {stale && <span className="weather-age"> · {age(weather.fetchedAt, now)}</span>}

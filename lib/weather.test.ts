@@ -87,6 +87,8 @@ describe("getWeather (FR-42, FR-45)", () => {
       temperature_2m_max: [52, 55],
       temperature_2m_min: [43, 45],
       precipitation_probability_max: [20, null],
+      sunrise: ["2026-10-28T07:44", "2026-10-29T07:46"],
+      sunset: ["2026-10-28T17:59", "2026-10-29T17:57"],
     },
   };
 
@@ -109,6 +111,8 @@ describe("getWeather (FR-42, FR-45)", () => {
       current: { temp: 51.4, code: 3, isDay: true },
       today: { high: 52, low: 43 },
     });
+    expect(url.searchParams.get("daily")).toContain("sunrise,sunset");
+    expect(w.daily[0]).toMatchObject({ sunrise: "2026-10-28T07:44", sunset: "2026-10-28T17:59" });
     expect(w.hourly[1].precip).toBe(0); // a missing chance of rain counts as none
     expect(household.setCache).toHaveBeenCalledWith("weather:47.662,-122.342:C", w, 900);
   });

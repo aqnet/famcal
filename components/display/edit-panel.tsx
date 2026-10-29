@@ -6,7 +6,7 @@ import type { Account, CalendarRow } from "@/lib/google";
 import { eventForecast, type Weather } from "@/lib/weather-model";
 import { fmtDateLong, fmtTimeShort, hhmm } from "@/lib/format";
 import { CloseIcon, WeatherIcon } from "@/components/icons";
-import { describeCode } from "@/lib/weather-model";
+import { describeCode, isNight, localIso } from "@/lib/weather-model";
 import { DEFAULT_REMIND, draftTimes, REMIND_ALL_DAY, REMIND_TIMED, remindLabel, type Draft } from "./draft";
 
 const IDLE_MS = 60_000;
@@ -344,7 +344,10 @@ export function EditPanel({
 
             {forecast && (
               <div className="callout">
-                <WeatherIcon kind={describeCode(hourCode ?? 3).icon} size={28} />
+                <WeatherIcon
+                  kind={describeCode(hourCode ?? 3, !!weather && isNight(weather, localIso(start))).icon}
+                  size={28}
+                />
                 <span>Forecast at event time: {forecast.detail}</span>
               </div>
             )}

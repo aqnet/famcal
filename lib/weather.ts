@@ -124,7 +124,7 @@ async function fetchForecast(lat: number, lon: number, units: "F" | "C", place: 
   url.searchParams.set("hourly", "temperature_2m,precipitation_probability,weather_code");
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset",
   );
   url.searchParams.set("temperature_unit", units === "F" ? "fahrenheit" : "celsius");
   url.searchParams.set("timezone", "auto");
@@ -145,6 +145,8 @@ async function fetchForecast(lat: number, lon: number, units: "F" | "C", place: 
       temperature_2m_max: number[];
       temperature_2m_min: number[];
       precipitation_probability_max: (number | null)[];
+      sunrise: string[];
+      sunset: string[];
     };
   };
   const hourly = j.hourly.time.map((time, i) => ({
@@ -159,8 +161,10 @@ async function fetchForecast(lat: number, lon: number, units: "F" | "C", place: 
     low: j.daily.temperature_2m_min[i],
     precip: j.daily.precipitation_probability_max[i] ?? 0,
     code: j.daily.weather_code[i],
+    sunrise: j.daily.sunrise[i],
+    sunset: j.daily.sunset[i],
   }));
-  const { condition, icon } = describeCode(j.current.weather_code);
+  const { condition, icon } = describeCode(j.current.weather_code, j.current.is_day === 0);
   return {
     place,
     units,
