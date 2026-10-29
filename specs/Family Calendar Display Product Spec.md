@@ -148,7 +148,7 @@ Typing email addresses on an iPad keyboard is the slowest part of any invite, so
 - FR-21: Mosaic of 5 tiles in the left column (one full-width hero, two 1×2 tall, two 1×1; visualdesign.md), photos chosen to match each tile's aspect ratio.
 - FR-22: Every 20 s (configurable) one tile cross-fades to a new photo; every 10 minutes all tiles are re-picked, still one tile at a time.
 - FR-23: New photos added to the gallery appear within 1 hour without touching the iPad.
-- FR-24: Tap a photo → full-screen view with caption and date taken; tap again or wait 30 s to return.
+- FR-24: Tap a photo → full-screen view with caption and date taken. Swipe left/right or press the arrow keys to move through the photo set (wrapping around); tap again or wait 30 s on a photo to return.
 - FR-25: Images served at the size the tile needs (≈ 1–2× tile pixels), never originals.
 
 **Photo source configuration**
@@ -191,6 +191,7 @@ Every action is a tap, a swipe or a panel; nothing needs hover, right-click, or 
 | Tap | "+N" overflow chip | Day view for that day |
 | Tap | Weather block | Forecast sheet |
 | Tap | Photo tile | Full-screen photo |
+| Swipe left/right | Full-screen photo | Next / previous photo |
 | Tap | "Resume draft" | Reopen the unsaved draft |
 | Long-press + drag | Event | Move or resize (v2) |
 | Pinch | Hour grid | Zoom hour height (v2) |
