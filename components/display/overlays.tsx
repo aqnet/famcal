@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { describeCode, isNight, type Weather } from "@/lib/weather-model";
 import { WeatherIcon } from "@/components/icons";
 import { reducedMotion } from "./hooks";
@@ -106,10 +107,13 @@ export function PhotoViewer({
       const el = track.current;
       if (!el || n < 2 || busy.current) return;
       const next = photos[(at + dir + n) % n].key;
-      const done = () => {
+      // Swap the photos in and put the strip back in the same frame. Resetting first, with React's
+      // render still to come, showed the photo just left for a frame (the flash when swiping).
+      const done = (a?: Animation) => {
+        flushSync(() => setKey(next));
         el.style.transform = "";
+        a?.cancel();
         busy.current = false;
-        setKey(next);
       };
       if (reducedMotion()) return done();
       busy.current = true;
@@ -124,10 +128,7 @@ export function PhotoViewer({
           easing: "cubic-bezier(.2,.7,.3,1)",
           fill: "forwards",
         },
-      ).finished.then((a) => {
-        done();
-        a.cancel();
-      }, done);
+      ).finished.then(done, () => done());
     },
     [at, n, photos],
   );
