@@ -88,7 +88,7 @@ The stack (up to four bands; only LL may repeat, as a 2×2 grid) is the one clos
 - Tiles use `object-fit: cover`, centered, with a 4 px gap. Each tile gets a photo of its own orientation, so a photo fills its tile uncropped.
 - Every 20 s (configurable) one tile flips over like a card to a new photo (~1.2 s, 3D turn with a slight overshoot; instant with Reduce Motion). Every 10 minutes every tile is re-picked, still flipping one at a time, never all at once.
 - Once every tile has flipped to a new photo, the next tick changes the layout: the mosaic slides up and out as another layout slides up in from below (~0.9 s, a 4 px gap between them), with photos the old layout wasn't showing where possible. The next layout is a random different pick from the layouts nearly as good as the best for the space and the gallery's mix, none stretching its tiles more than ~12% (`layoutChoices`). With Reduce Motion it swaps instantly.
-- Tap a tile: full-screen photo with caption and date taken; tap again or wait 30 s to return.
+- Tap a tile: full-screen photo with caption, date taken and position ("14 / 30"). Swipe left/right (the photo follows the finger; a quarter-width drag or a flick moves on) or press ←/→ to step through the set, wrapping at the ends; 24px of black between photos while sliding. Tap or wait 30 s on one photo to return.
 - While the edit panel is open the mosaic sits underneath it; at night it dims to 50% opacity.
 
 ## Week calendar (right panel)

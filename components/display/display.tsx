@@ -430,6 +430,7 @@ export function Display() {
   const openEvent = (e: CalEvent) => setPanel({ event: e, draft: draftFromEvent(e, keywords), slot: null });
 
   const closePanel = useCallback(() => setPanel(null), []);
+  const closePhoto = useCallback(() => setPhotoOpen(null), []);
 
   // Escape (hardware keyboard) closes whatever is on top, one layer per press.
   useEffect(() => {
@@ -863,7 +864,7 @@ export function Display() {
         <Toasts toasts={toasts} onDismiss={(id) => setToasts((all) => all.filter((t) => t.id !== id))} />
       </main>
 
-      {photoOpen && <PhotoViewer photo={photoOpen} onClose={() => setPhotoOpen(null)} />}
+      {photoOpen && <PhotoViewer photos={photos} startKey={photoOpen.key} onClose={closePhoto} />}
       {pinPrompt && (
         <PinPad
           title="PIN needed to invite this address"

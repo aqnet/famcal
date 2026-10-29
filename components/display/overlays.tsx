@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { describeCode, isNight, type Weather } from "@/lib/weather-model";
 import { WeatherIcon } from "@/components/icons";
+import { reducedMotion } from "./hooks";
 import type { Photo } from "./types";
 
-function useAutoClose(onClose: () => void, ms = 30_000) {
+// `restart` resets the timer whenever it changes.
+function useAutoClose(onClose: () => void, ms = 30_000, restart?: unknown) {
   useEffect(() => {
     const t = setTimeout(onClose, ms);
     return () => clearTimeout(t);
-  }, [onClose, ms]);
+  }, [onClose, ms, restart]);
 }
 
 // Hourly (next 12 h) and 5-day forecast, anchored to the info card (FR-43, FR-46).
@@ -69,20 +71,152 @@ export function ForecastSheet({
   );
 }
 
-export function PhotoViewer({ photo, onClose }: { photo: Photo; onClose: () => void }) {
-  useAutoClose(onClose);
+const GAP = 24; // black space between photos while swiping
+
+// Full-screen photo (FR-40). Swipe or use the arrow keys to move through the set (it wraps around);
+// the photo follows the finger and its neighbours wait on either side. A tap closes it.
+export function PhotoViewer({
+  photos,
+  startKey,
+  onClose,
+}: {
+  photos: Photo[];
+  startKey: string;
+  onClose: () => void;
+}) {
+  const [key, setKey] = useState(startKey);
+  const n = photos.length;
+  const at = Math.max(
+    0,
+    photos.findIndex((p) => p.key === key),
+  );
+  const photo = photos[at];
+  useAutoClose(onClose, 30_000, key); // each photo gets its own 30 s
+
+  // Fetch two further photos each way, so stepping quickly doesn't land on a blank screen.
+  useEffect(() => {
+    if (n < 4) return;
+    for (const d of [-2, 2]) new Image().src = photos[(at + d + n) % n].fullUrl;
+  }, [at, n, photos]);
+
+  const track = useRef<HTMLDivElement>(null);
+  const busy = useRef(false);
+  const go = useCallback(
+    (dir: 1 | -1) => {
+      const el = track.current;
+      if (!el || n < 2 || busy.current) return;
+      const next = photos[(at + dir + n) % n].key;
+      const done = () => {
+        el.style.transform = "";
+        busy.current = false;
+        setKey(next);
+      };
+      if (reducedMotion()) return done();
+      busy.current = true;
+      const from = getComputedStyle(el).transform;
+      el.animate(
+        [
+          { transform: from === "none" ? "translateX(0)" : from },
+          { transform: `translateX(calc(${-dir * 100}% - ${dir * GAP}px))` },
+        ],
+        {
+          duration: 260,
+          easing: "cubic-bezier(.2,.7,.3,1)",
+          fill: "forwards",
+        },
+      ).finished.then((a) => {
+        done();
+        a.cancel();
+      }, done);
+    },
+    [at, n, photos],
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") go(1);
+      else if (e.key === "ArrowLeft") go(-1);
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [go]);
+
+  // Drag: follow the finger; let go past a quarter of the width (or with a flick) to move on.
+  const drag = useRef<{ x: number; y: number; t: number; dx: number; moved: boolean } | null>(null);
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (busy.current) return;
+    drag.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, dx: 0, moved: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d || !track.current) return;
+    d.dx = e.clientX - d.x;
+    if (Math.abs(d.dx) > 8 || Math.abs(e.clientY - d.y) > 8) d.moved = true;
+    if (n > 1) track.current.style.transform = `translateX(${d.dx}px)`;
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const d = drag.current;
+    drag.current = null;
+    const el = track.current;
+    if (!d || !el) return;
+    if (!d.moved) return onClose();
+    const speed = Math.abs(d.dx) / Math.max(1, e.timeStamp - d.t); // px per ms
+    if (n > 1 && (Math.abs(d.dx) > el.clientWidth / 4 || (speed > 0.5 && Math.abs(d.dx) > 30))) {
+      return go(d.dx < 0 ? 1 : -1);
+    }
+    if (reducedMotion()) {
+      el.style.transform = "";
+      return;
+    }
+    el.animate([{ transform: el.style.transform || "none" }, { transform: "translateX(0)" }], {
+      duration: 200,
+      easing: "ease-out",
+    });
+    el.style.transform = "";
+  };
+
+  if (!photo) return null;
+  // The current photo and its neighbours; with two photos the same one waits on both sides.
+  const slides =
+    n < 2
+      ? [{ p: photo, pos: 0 }]
+      : [
+          { p: photos[(at - 1 + n) % n], pos: -1 },
+          { p: photo, pos: 0 },
+          { p: photos[(at + 1) % n], pos: 1 },
+        ];
   const taken = photo.takenAt ? new Date(photo.takenAt) : null;
   return (
-    <button className="photo-full" onClick={onClose} aria-label="Close photo">
-      <img src={photo.fullUrl} alt={photo.caption} />
-      {(photo.caption || taken) && (
-        <span className="photo-full-caption">
-          {photo.caption}
-          {photo.caption && taken ? " · " : ""}
-          {taken?.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-        </span>
-      )}
-    </button>
+    <div
+      className="photo-full"
+      role="dialog"
+      aria-label="Photo. Tap to close; swipe or use the arrow keys for the next photo."
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      <div className="photo-track" ref={track}>
+        {slides.map(({ p, pos }) => (
+          <img
+            key={n === 2 && pos !== 0 ? `${p.key}:${pos}` : p.key}
+            src={p.fullUrl}
+            alt={pos === 0 ? p.caption : ""}
+            draggable={false}
+            style={{ transform: `translateX(calc(${pos * 100}% + ${pos * GAP}px))` }}
+          />
+        ))}
+      </div>
+      <span className="photo-full-caption">
+        {photo.caption}
+        {photo.caption && taken ? " · " : ""}
+        {taken?.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+        {n > 1 && <span className="photo-full-count">{`${at + 1} / ${n}`}</span>}
+      </span>
+    </div>
   );
 }
 
