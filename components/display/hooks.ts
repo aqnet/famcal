@@ -2,12 +2,27 @@
 
 import { useEffect, useState } from "react";
 
-export function useNow(intervalMs: number): Date {
+// The current time, updated as each minute starts (so the clock turns over with the iPad's own), and
+// again whenever the page comes back into view, since a hidden page's timers are paused.
+export function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), intervalMs);
-    return () => clearInterval(t);
-  }, [intervalMs]);
+    let t: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      const d = new Date();
+      setNow(d);
+      clearTimeout(t);
+      // a few ms past the boundary, so a slightly early timer can't land on the old minute
+      t = setTimeout(tick, 60_000 - (d.getTime() % 60_000) + 20);
+    };
+    tick();
+    const onShow = () => document.visibilityState === "visible" && tick();
+    document.addEventListener("visibilitychange", onShow);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("visibilitychange", onShow);
+    };
+  }, []);
   return now;
 }
 

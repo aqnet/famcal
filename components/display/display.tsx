@@ -70,7 +70,7 @@ const writable = (c: CalendarRow) => c.accessRole === "owner" || c.accessRole ==
 const calKey = (accountId: string, calendarId: string) => `${accountId}\n${calendarId}`;
 
 export function Display() {
-  const now = useNow(15_000);
+  const now = useNow();
   const online = useOnline();
   const visible = useVisible();
 
