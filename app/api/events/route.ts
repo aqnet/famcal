@@ -46,7 +46,13 @@ function validInput(e: EventInput | undefined): e is EventInput {
   const ok = e.allDay
     ? /^\d{4}-\d{2}-\d{2}$/.test(e.start) && /^\d{4}-\d{2}-\d{2}$/.test(e.end) && e.end > e.start
     : Date.parse(e.end) > Date.parse(e.start);
-  return ok && (!e.guests || (Array.isArray(e.guests) && e.guests.every((g) => /^[^\s@]+@[^\s@]+$/.test(g))));
+  const reminder =
+    e.reminder == null || (Number.isInteger(e.reminder) && e.reminder >= 0 && e.reminder <= 40320); // Google's cap: 4 weeks
+  return (
+    ok &&
+    reminder &&
+    (!e.guests || (Array.isArray(e.guests) && e.guests.every((g) => /^[^\s@]+@[^\s@]+$/.test(g))))
+  );
 }
 
 // Typed addresses outside family and recent guests need the PIN (FR-60).

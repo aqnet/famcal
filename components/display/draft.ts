@@ -29,7 +29,28 @@ export type Draft = {
   guestsCanInviteOthers: boolean;
   guestsCanSeeOtherGuests: boolean;
   guestsCanModify: boolean;
+  remind: boolean;
+  remindMinutes: number;
+  remindTouched: boolean; // only a changed reminder is sent, so an edit never clobbers one set elsewhere
 };
+
+// Lead times offered for a reminder. An all-day event starts at midnight, so its choices are the
+// afternoon and the morning of the day before.
+export const REMIND_TIMED = [5, 10, 30, 60];
+export const REMIND_ALL_DAY = [7 * 60, 15 * 60];
+export const DEFAULT_REMIND = { timed: 10, allDay: 7 * 60 };
+
+export function remindLabel(mins: number, allDay: boolean): string {
+  if (allDay) {
+    const at = new Date(2000, 0, 1, 0, -mins);
+    const days = Math.ceil(mins / 1440);
+    const when = days === 1 ? "Day before" : `${days} days before`;
+    return `${when}, ${at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(":00", "")}`;
+  }
+  if (mins < 60) return `${mins} min`;
+  if (mins % 1440 === 0) return mins === 1440 ? "1 day" : `${mins / 1440} days`;
+  return mins % 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins / 60} h`;
+}
 
 export function nextHalfHour(now: Date): Date {
   const d = new Date(now);
@@ -58,6 +79,9 @@ export function newDraft(at: Date, cal: { accountId: string; calendarId: string 
     guestsCanInviteOthers: true,
     guestsCanSeeOtherGuests: true,
     guestsCanModify: false,
+    remind: true,
+    remindMinutes: DEFAULT_REMIND.timed,
+    remindTouched: true, // a new event always gets its reminder set
   };
 }
 
@@ -86,6 +110,9 @@ export function draftFromEvent(e: CalEvent, keywords: string[]): Draft {
     guestsCanInviteOthers: e.guestsCanInviteOthers,
     guestsCanSeeOtherGuests: e.guestsCanSeeOtherGuests,
     guestsCanModify: e.guestsCanModify,
+    remind: e.reminder != null, // events cached before reminders were read have none
+    remindMinutes: e.reminder ?? (e.allDay ? DEFAULT_REMIND.allDay : DEFAULT_REMIND.timed),
+    remindTouched: false,
   };
 }
 
@@ -115,6 +142,7 @@ export function draftToInput(d: Draft, guestsChanged: boolean): EventInput {
     guestsCanInviteOthers: d.guestsCanInviteOthers,
     guestsCanSeeOtherGuests: d.guestsCanSeeOtherGuests,
     guestsCanModify: d.guestsCanModify,
+    ...(d.remindTouched && { reminder: d.remind ? d.remindMinutes : null }),
   };
 }
 
@@ -132,6 +160,7 @@ export function applyDraft(base: CalEvent, d: Draft): CalEvent {
     outdoor: input.outdoor,
     accountId: d.accountId,
     calendarId: d.calendarId,
+    reminder: d.remind ? d.remindMinutes : null,
     attendees: d.guests.map(
       (email) => base.attendees.find((a) => a.email === email) ?? { email, status: "needsAction" },
     ),

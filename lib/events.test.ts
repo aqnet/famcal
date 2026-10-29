@@ -84,6 +84,18 @@ describe("writes", () => {
     });
   });
 
+  it("sets a pop-up reminder, turns reminders off with null, and leaves them alone when absent", async () => {
+    googleHas({ "occ-1": { id: "occ-1" } });
+    await createEvent("acc-1", "family@group", { ...input, reminder: 10 });
+    await updateEvent(ref, { ...input, reminder: null }, "this");
+    await updateEvent(ref, input, "this");
+    expect(writes().map((w) => w.body?.reminders)).toEqual([
+      { useDefault: false, overrides: [{ method: "popup", minutes: 10 }] },
+      { useDefault: false, overrides: [] },
+      undefined,
+    ]);
+  });
+
   it("emails invitations when guests are added", async () => {
     googleHas({});
     await createEvent("acc-1", "family@group", { ...input, guests: ["Grandma@Example.com"] });
@@ -240,6 +252,30 @@ describe("listEvents", () => {
       ["guest@example.com"],
       expect.any(Number),
     );
+  });
+
+  it("reads each event's pop-up reminder, falling back to the calendar's defaults", async () => {
+    gcal.mockImplementation(async (acc) =>
+      acc === "fam"
+        ? ({
+            defaultReminders: [{ method: "popup", minutes: 30 }],
+            items: [
+              ev("default", "u1"),
+              {
+                ...ev("own", "u2"),
+                reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 5 }] },
+              },
+              {
+                ...ev("email-only", "u3"),
+                reminders: { useDefault: false, overrides: [{ method: "email", minutes: 60 }] },
+              },
+            ],
+          } as never)
+        : ({ items: [] } as never),
+    );
+    const res = await listEvents("2026-10-25T00:00:00Z", "2026-11-01T00:00:00Z");
+    const by = Object.fromEntries(res.events.map((e) => [e.title, e.reminder]));
+    expect(by).toEqual({ default: 30, own: 5, "email-only": null });
   });
 
   it("keeps showing the other accounts when one fails", async () => {

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { CalEvent } from "@/lib/calendar-model";
-import { applyDraft, draftFromEvent, draftTimes, draftToInput, newDraft, nextHalfHour } from "./draft";
+import {
+  applyDraft,
+  draftFromEvent,
+  draftTimes,
+  draftToInput,
+  newDraft,
+  nextHalfHour,
+  remindLabel,
+} from "./draft";
 
 const cal = { accountId: "acc-1", calendarId: "family@group" };
 
@@ -24,6 +32,7 @@ function event(over: Partial<CalEvent> = {}): CalEvent {
     guestsCanInviteOthers: true,
     guestsCanSeeOtherGuests: true,
     guestsCanModify: false,
+    reminder: null,
     ...over,
   };
 }
@@ -160,5 +169,49 @@ describe("applyDraft", () => {
       { email: "grandma@example.com", status: "accepted" },
       { email: "new@example.com", status: "needsAction" },
     ]);
+  });
+});
+
+describe("reminders", () => {
+  it("notifies 10 minutes before a new event by default", () => {
+    const d = newDraft(new Date(2026, 9, 31, 9, 0), cal);
+    expect(d).toMatchObject({ remind: true, remindMinutes: 10 });
+    expect(draftToInput(d, false).reminder).toBe(10);
+  });
+
+  it("sends null to turn a new event's reminder off", () => {
+    const d = { ...newDraft(new Date(2026, 9, 31, 9, 0), cal), remind: false };
+    expect(draftToInput(d, false).reminder).toBeNull();
+  });
+
+  it("reads an event's reminder, and leaves it alone on save unless it was changed", () => {
+    const d = draftFromEvent(event({ reminder: 15 }), []);
+    expect(d).toMatchObject({ remind: true, remindMinutes: 15, remindTouched: false });
+    expect("reminder" in draftToInput(d, false)).toBe(false);
+    expect(draftToInput({ ...d, remind: false, remindTouched: true }, false).reminder).toBeNull();
+  });
+
+  it("offers the default lead time when an event has no reminder yet", () => {
+    expect(draftFromEvent(event(), [])).toMatchObject({ remind: false, remindMinutes: 10 });
+    expect(draftFromEvent(event({ allDay: true, start: "2026-10-31", end: "2026-11-01" }), [])).toMatchObject(
+      {
+        remind: false,
+        remindMinutes: 420,
+      },
+    );
+  });
+
+  it("shows the reminder on the optimistic copy", () => {
+    expect(applyDraft(event(), newDraft(new Date(2026, 9, 31, 9, 0), cal)).reminder).toBe(10);
+  });
+
+  it("labels lead times, counting all-day ones back from midnight", () => {
+    expect(remindLabel(10, false)).toBe("10 min");
+    expect(remindLabel(60, false)).toBe("1 h");
+    expect(remindLabel(90, false)).toBe("1 h 30 min");
+    expect(remindLabel(1440, false)).toBe("1 day");
+    expect(remindLabel(420, true)).toBe("Day before, 5 PM");
+    expect(remindLabel(900, true)).toBe("Day before, 9 AM");
+    expect(remindLabel(2040, true)).toBe("2 days before, 2 PM");
   });
 });

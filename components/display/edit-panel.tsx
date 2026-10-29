@@ -7,7 +7,7 @@ import { eventForecast, type Weather } from "@/lib/weather-model";
 import { fmtDateLong, fmtTimeShort, hhmm } from "@/lib/format";
 import { CloseIcon, WeatherIcon } from "@/components/icons";
 import { describeCode } from "@/lib/weather-model";
-import { draftTimes, type Draft } from "./draft";
+import { DEFAULT_REMIND, draftTimes, REMIND_ALL_DAY, REMIND_TIMED, remindLabel, type Draft } from "./draft";
 
 const IDLE_MS = 60_000;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -102,6 +102,14 @@ export function EditPanel({
       const next = { ...prev, ...patch };
       if (patch.title !== undefined && !prev.outdoorTouched)
         next.outdoor = guessOutdoor(next.title, keywords);
+      // 10 minutes before an all-day event is 11:50 the night before: switch to that kind's default.
+      if (patch.allDay !== undefined && patch.allDay !== prev.allDay) {
+        const fits = (patch.allDay ? REMIND_ALL_DAY : REMIND_TIMED).includes(prev.remindMinutes);
+        if (!fits) {
+          next.remindMinutes = patch.allDay ? DEFAULT_REMIND.allDay : DEFAULT_REMIND.timed;
+          next.remindTouched ||= prev.remind;
+        }
+      }
       return next;
     });
 
@@ -338,6 +346,39 @@ export function EditPanel({
               <div className="callout">
                 <WeatherIcon kind={describeCode(hourCode ?? 3).icon} size={28} />
                 <span>Forecast at event time: {forecast.detail}</span>
+              </div>
+            )}
+
+            <label className="switch-row">
+              <span>
+                <span className="switch-title">Notify</span>
+                <span className="field-hint">Reminder on phones signed in to this calendar</span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                className="switch"
+                checked={d.remind}
+                onChange={(e) => set({ remind: e.target.checked, remindTouched: true })}
+              />
+            </label>
+            {d.remind && (
+              <div className="chips" role="group" aria-label="Notify before">
+                {[...new Set([...(d.allDay ? REMIND_ALL_DAY : REMIND_TIMED), d.remindMinutes])]
+                  .sort((a, b) => a - b)
+                  .map((mins) => {
+                    const on = d.remindMinutes === mins;
+                    return (
+                      <button
+                        key={mins}
+                        className={`btn btn-chip${on ? " is-on" : ""}`}
+                        aria-pressed={on}
+                        onClick={() => set({ remindMinutes: mins, remindTouched: true })}
+                      >
+                        {remindLabel(mins, d.allDay)}
+                      </button>
+                    );
+                  })}
               </div>
             )}
 
