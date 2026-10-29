@@ -23,7 +23,7 @@ All sizes below are CSS points (pt = CSS px on iPad). The layout is fluid; nothi
 
 ```
 ┌──────────────────────┬──────────────────────────────────────────────────────┐
-│ ┌──────────────────┐ │ October 2026  ‹ › Today   [All|AQ|FA]      [+ Add]   │
+│ ┌──────────────────┐ │ ‹ › Today   [All|AQ|FA]                    [+ Add]   │
 │ │ 10:42 AM   ☂ 54° │ │ ┌──────────────────────────────────────────────────┐ │
 │ │ Mon, Oct 26  Rain│ │ │ all-day row                                      │ │
 │ │          H57 L46 │ │ │ Sun  Mon  Tue  Wed  Thu  Fri  Sat                │ │
@@ -50,7 +50,7 @@ All sizes below are CSS points (pt = CSS px on iPad). The layout is fluid; nothi
 | Photo mosaic | fills the rest (≈ 520pt on 13", ≈ 300pt on 11") | 2-col × 6-row grid, `gap: 4px`, 20px radius on the container (tiles are square-cornered inside) |
 | Photo caption | ~20pt | "SmugMug · [Gallery name]" |
 | Right panel | `flex: 1` | 32px padding, vertical flex, `gap: 16px` |
-| Calendar header | ~56pt | Month and year, ‹ › arrows and **Today** on the left; account switcher (only when 2+ accounts) in the middle; **+ Add** on the right |
+| Calendar header | ~56pt | ‹ › arrows and **Today** on the left (no month title: the info card's month header already shows it); account switcher (only when 2+ accounts) in the middle; **+ Add** on the right |
 | Calendar card | fills the rest | `--surface`, 1px border, 20px radius; 64pt hour column + 7 day columns |
 | Footer | ~24pt | Calendar legend on the left; "Synced 10:42 AM" (or "Offline · last synced …") on the right |
 
@@ -59,12 +59,13 @@ A dedicated card. Nothing sits over the photos.
 
 **Row 1: time and weather** (space-between)
 - **Left:** time 72pt/800 (letter-spacing −2.5px); date below 20pt/600 `--text-2`.
+- **Under the date:** sunrise and sunset for today with small horizon icons, 15pt/600 `--text-2` (e.g. ↑ 7:44 AM  ↓ 5:59 PM).
 - **Right, right-aligned:** condition icon 40pt plus temperature 44pt/800; condition 17pt/700; hi/lo 15pt `--text-2`; summary 15pt/600 in `--rain` when rain is involved (e.g. "Tapering by 2 PM").
 - The whole weather block is a button: tap opens the forecast sheet (next 12 hours + 5 days), anchored to the info card, closes on outside tap or after 30 s.
 - If weather is stale (> 2 h), the block turns `--text-3` and shows its age ("54° · 3 h ago").
 
 **Row 2: month calendar** (above a hairline divider, 14pt top padding)
-- Month and year 18pt/700; weekday letters 13pt/700 `--text-3`.
+- Month and year 20pt/700 (the date line's size); weekday letters 13pt/700 `--text-3`.
 - 7-column date grid, 38pt rows (34pt on the 11"), 5 or 6 rows.
 - Today: 28pt filled `--accent` circle with `--on-accent` text, 800 weight.
 - The week shown on the right gets a `--week-band` band. Tapping a date jumps the week view there.
@@ -214,7 +215,7 @@ Default palette, assigned in Settings per calendar. No calendar color may reuse 
 | Family | `#6B4FA0` purple | 6.3:1 |
 | 5th+ calendars | `#2E7D32` green, `#8D6E00` ochre, `#5D4037` brown | ≥ 4.5:1 |
 
-Weather icon strokes: sun `#C98A00`, cloud `--text-3`, rain `--rain`.
+Weather icon strokes: sun `#C98A00`, moon `--moon` (`#5A6A9C` light, `#AEB9DC` dark), cloud `--text-3`, rain `--rain`. Clear and partly cloudy show the moon between sunset and sunrise (the current icon by the device clock, hourly icons by their hour).
 
 ### Typography
 Font: **Manrope** (Google Fonts, weights 400–800), self-hosted so it renders offline, with `system-ui` as fallback.
@@ -223,7 +224,6 @@ Font: **Manrope** (Google Fonts, weights 400–800), self-hosted so it renders o
 |---|---|
 | Clock | 72pt / 800, letter-spacing −2.5px |
 | Temperature | 44pt / 800 |
-| Month (calendar header) | 30pt / 800 |
 | Edit panel title | 28pt / 800 |
 | Day header | 16pt / 600, date number 24pt / 800 |
 | Date (info card) | 20pt / 600 |

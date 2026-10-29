@@ -45,13 +45,22 @@ export function GearIcon({ size = 22 }: P) {
   );
 }
 
-// Weather icons: sun #C98A00, cloud --text-3, rain --rain (visualdesign.md).
+// Weather icons: sun #C98A00, moon --moon, cloud --text-3, rain --rain (visualdesign.md).
 export function WeatherIcon({ kind, size = 40 }: P & { kind: IconKind }) {
   const sun = (
     <g stroke="#C98A00" fill="none" strokeWidth={2} strokeLinecap="round">
       <circle cx="12" cy="12" r="4.5" />
       <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
     </g>
+  );
+  const moon = (
+    <path
+      d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"
+      fill="none"
+      stroke="var(--moon)"
+      strokeWidth={2}
+      strokeLinejoin="round"
+    />
   );
   const cloud = (dy = 0) => (
     <path
@@ -76,6 +85,13 @@ export function WeatherIcon({ kind, size = 40 }: P & { kind: IconKind }) {
       {kind === "partly" && (
         <>
           <g transform="translate(-3 -3) scale(.8)">{sun}</g>
+          {cloud(1)}
+        </>
+      )}
+      {kind === "moon" && moon}
+      {kind === "partly-night" && (
+        <>
+          <g transform="translate(-3 -3) scale(.8)">{moon}</g>
           {cloud(1)}
         </>
       )}
@@ -116,6 +132,18 @@ export function WeatherIcon({ kind, size = 40 }: P & { kind: IconKind }) {
           />
         </>
       )}
+    </svg>
+  );
+}
+
+// Sunrise and sunset: a half sun on the horizon with an arrow up or down.
+export function SunTimeIcon({ dir, size = 18 }: P & { dir: "rise" | "set" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      <g stroke="#C98A00" fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 18a5 5 0 0 1 10 0M3 18h18M4.9 12.9l1.4 1.4M17.7 14.3l1.4-1.4" />
+        <path d={dir === "rise" ? "M12 9V3M9.5 5.5L12 3l2.5 2.5" : "M12 3v6M9.5 6.5L12 9l2.5-2.5"} />
+      </g>
     </svg>
   );
 }

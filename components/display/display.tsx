@@ -721,7 +721,8 @@ export function Display() {
       <main className="right-panel">
         <header className="cal-header">
           <div className="cal-nav">
-            <h1 className="cal-month">{fmtMonthYear(view === "week" ? addDays(weekStart, 3) : anchor)}</h1>
+            {/* The info card already shows the month; the heading stays for screen readers. */}
+            <h1 className="sr-only">{fmtMonthYear(view === "week" ? addDays(weekStart, 3) : anchor)}</h1>
             <button
               className="icon-btn icon-btn-44"
               aria-label={view === "week" ? "Previous week" : "Previous day"}

@@ -1,6 +1,7 @@
 // Weather shapes and text, shared by server and display.
 
-export type IconKind = "sun" | "partly" | "cloud" | "fog" | "rain" | "snow" | "storm";
+export type IconKind =
+  "sun" | "moon" | "partly" | "partly-night" | "cloud" | "fog" | "rain" | "snow" | "storm";
 
 export type Weather = {
   place: string;
@@ -9,14 +10,25 @@ export type Weather = {
   current: { temp: number; code: number; condition: string; icon: IconKind; isDay: boolean };
   today: { high: number; low: number; summary: string; rainy: boolean };
   hourly: { time: string; temp: number; precip: number; code: number }[]; // local ISO without offset
-  daily: { date: string; high: number; low: number; precip: number; code: number }[];
+  daily: {
+    date: string;
+    high: number;
+    low: number;
+    precip: number;
+    code: number;
+    sunrise?: string; // local ISO without offset; absent in readings cached before it was fetched
+    sunset?: string;
+  }[];
 };
 
-// WMO weather codes used by Open-Meteo.
-export function describeCode(code: number): { condition: string; icon: IconKind } {
-  if (code === 0) return { condition: "Clear", icon: "sun" };
+// WMO weather codes used by Open-Meteo. At night a clear sky shows the moon instead of the sun.
+export function describeCode(code: number, night = false): { condition: string; icon: IconKind } {
+  if (code === 0) return { condition: "Clear", icon: night ? "moon" : "sun" };
   if (code === 1 || code === 2)
-    return { condition: code === 1 ? "Mostly clear" : "Partly cloudy", icon: "partly" };
+    return {
+      condition: code === 1 ? "Mostly clear" : "Partly cloudy",
+      icon: night ? "partly-night" : "partly",
+    };
   if (code === 3) return { condition: "Cloudy", icon: "cloud" };
   if (code === 45 || code === 48) return { condition: "Fog", icon: "fog" };
   if (code >= 51 && code <= 57) return { condition: "Drizzle", icon: "rain" };
@@ -25,6 +37,19 @@ export function describeCode(code: number): { condition: string; icon: IconKind 
   if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { condition: "Snow", icon: "snow" };
   if (code >= 95) return { condition: "Thunderstorms", icon: "storm" };
   return { condition: "—", icon: "cloud" };
+}
+
+// Local "YYYY-MM-DDTHH:MM" for a device time; the display runs in the forecast's zone.
+export function localIso(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// Whether a local time falls between that day's sunrise and sunset. Unknown days count as day.
+export function isNight(weather: Weather, at: string): boolean {
+  const day = weather.daily.find((d) => d.date === at.slice(0, 10));
+  if (!day?.sunrise || !day.sunset) return false;
+  return at < day.sunrise || at >= day.sunset;
 }
 
 export const isWet = (code: number) => ["rain", "snow", "storm"].includes(describeCode(code).icon);

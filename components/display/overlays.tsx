@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { describeCode, type Weather } from "@/lib/weather-model";
+import { describeCode, isNight, type Weather } from "@/lib/weather-model";
 import { WeatherIcon } from "@/components/icons";
 import type { Photo } from "./types";
 
@@ -40,7 +40,7 @@ export function ForecastSheet({
             return (
               <div key={h.time} className="hour">
                 <span className="hour-time">{`${hr % 12 || 12}${hr < 12 ? "a" : "p"}`}</span>
-                <WeatherIcon kind={describeCode(h.code).icon} size={28} />
+                <WeatherIcon kind={describeCode(h.code, isNight(weather, h.time)).icon} size={28} />
                 <span className="hour-temp">{Math.round(h.temp)}°</span>
                 <span className={`hour-precip${h.precip >= 40 ? " is-rain" : ""}`}>{h.precip}%</span>
               </div>
