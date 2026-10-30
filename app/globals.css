@@ -334,6 +334,110 @@ a {
   }
 }
 
+.auth-stack {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-legal,
+.legal-nav {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.auth-legal a,
+.legal-nav a {
+  color: var(--text-2);
+}
+
+/* ---------- Privacy policy and terms ---------- */
+.legal-page {
+  min-height: 100dvh;
+  padding: 48px 16px 64px;
+  background: var(--bg);
+}
+
+.legal {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 17px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .legal {
+    padding: 24px;
+  }
+}
+
+.legal h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.legal h2 {
+  margin: 36px 0 8px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.legal h3 {
+  margin: 20px 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.legal p,
+.legal ul {
+  margin: 8px 0;
+}
+
+.legal li + li {
+  margin-top: 6px;
+}
+
+.legal a {
+  color: var(--accent);
+}
+
+.legal code {
+  font-size: 15px;
+}
+
+.legal-app {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.legal-date {
+  color: var(--text-3);
+  font-size: 15px;
+}
+
+/* The fixed version label would sit on top of the text as it scrolls. */
+.legal-page ~ .app-version {
+  display: none;
+}
+
+.legal-nav {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+
 .auth-title {
   margin: 0;
   font-size: 30px;

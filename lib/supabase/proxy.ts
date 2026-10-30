@@ -17,8 +17,15 @@ const PUBLIC_FILES = [
   "/famcal-logo-dark.svg",
 ];
 
+// Public pages: the privacy policy and terms, which Google's OAuth review and anyone else must reach.
+const PUBLIC_PAGES = ["/privacy", "/terms"];
+
 export function isPublicPath(pathname: string): boolean {
-  return PUBLIC_FILES.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+  return (
+    PUBLIC_FILES.includes(pathname) ||
+    PUBLIC_PAGES.includes(pathname) ||
+    PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
+  );
 }
 
 // Refresh the Supabase session cookie on every request and gate everything but the login and

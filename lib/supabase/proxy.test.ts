@@ -99,4 +99,11 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/icon.svg/../api/events")).toBe(false);
     expect(isPublicPath("/api/config")).toBe(false);
   });
+
+  it("serves the privacy policy and terms to anyone, and nothing beneath them", () => {
+    expect(isPublicPath("/privacy")).toBe(true);
+    expect(isPublicPath("/terms")).toBe(true);
+    expect(isPublicPath("/privacy/../api/events")).toBe(false);
+    expect(isPublicPath("/termsx")).toBe(false);
+  });
 });
