@@ -428,7 +428,8 @@ a {
 }
 
 /* The fixed version label would sit on top of the text as it scrolls. */
-.legal-page ~ .app-version {
+.legal-page ~ .app-version,
+.home-page ~ .app-version {
   display: none;
 }
 
@@ -438,6 +439,246 @@ a {
   border-top: 1px solid var(--hairline);
 }
 
+/* ---------- Public home page ---------- */
+.home-page {
+  max-width: 1040px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 20px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.home-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.home-hero {
+  max-width: 720px;
+}
+
+.home-hero h1 {
+  margin: 0;
+  font-size: clamp(36px, 6vw, 56px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.home-lead {
+  margin: 16px 0 0;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.home-note {
+  margin: 12px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.home-preview {
+  margin: 0;
+}
+
+.home-preview figcaption {
+  margin-top: 10px;
+  font-size: 14px;
+  text-align: center;
+  color: var(--text-3);
+}
+
+.home-screen {
+  display: grid;
+  grid-template-columns: 30% 1fr;
+  gap: 16px;
+  aspect-ratio: 16 / 9;
+  padding: 16px;
+  background: var(--bg);
+  border: 10px solid #1d1d1b;
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  font-size: clamp(9px, 1.25vw, 13px);
+}
+
+.home-screen-side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.home-screen-clock {
+  font-size: 3.4em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.home-screen-date,
+.home-screen-weather {
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.home-screen-weather {
+  margin-top: 0.8em;
+  font-size: 1.3em;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.home-screen-photos {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  margin-top: 1.2em;
+}
+
+.home-screen-photos span {
+  border-radius: 8px;
+  background: linear-gradient(150deg, #7db4e6, #1f5fa8);
+}
+
+.home-screen-photos span:first-child {
+  grid-row: span 2;
+  background: linear-gradient(150deg, #e8b878, #a3366f);
+}
+
+.home-screen-photos span:last-child {
+  background: linear-gradient(150deg, #a7cfa0, #2e7d32);
+}
+
+.home-screen-week {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.home-screen-day {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.home-screen-day + .home-screen-day {
+  border-left: 1px solid var(--hairline);
+}
+
+.home-screen-head {
+  padding: 0.6em;
+  border-bottom: 1px solid var(--hairline);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.home-screen-head strong {
+  font-weight: 800;
+  color: var(--text);
+}
+
+.home-screen-events {
+  position: relative;
+  flex: 1;
+}
+
+.home-screen-event {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  padding: 0.3em 0.5em;
+  border-radius: 6px;
+  color: var(--on-event);
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+}
+
+.home-features {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.home-features h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.home-features p {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.home-google {
+  max-width: 760px;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.home-google h2 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.home-google p,
+.home-google ul {
+  margin: 8px 0;
+}
+
+.home-google li + li {
+  margin-top: 6px;
+}
+
+.home-google a {
+  color: var(--accent);
+}
+
+@media (max-width: 760px) {
+  .home-page {
+    gap: 32px;
+    padding: 16px 16px 40px;
+  }
+
+  .home-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* The week is the point of the illustration; the small side panel doesn't survive a phone width. */
+  .home-screen {
+    grid-template-columns: 1fr;
+    aspect-ratio: 4 / 3;
+    padding: 8px;
+    border-width: 6px;
+    border-radius: 18px;
+  }
+
+  .home-screen-side {
+    display: none;
+  }
+}
+
 .auth-title {
   margin: 0;
   font-size: 30px;
@@ -445,8 +686,8 @@ a {
 }
 
 .auth-logo {
-  margin: 0 0 4px;
-  line-height: 0;
+  display: block;
+  margin: 0 0 16px;
 }
 
 .auth-subtitle {
