@@ -13,12 +13,11 @@ const PUBLIC_FILES = [
   "/famcal-mark.svg",
   "/icon-192.png",
   "/icon-512.png",
-  "/famcal-logo.svg",
-  "/famcal-logo-dark.svg",
 ];
 
-// Public pages: the privacy policy and terms, which Google's OAuth review and anyone else must reach.
-const PUBLIC_PAGES = ["/privacy", "/terms"];
+// Public pages: the home page, privacy policy and terms, which Google's OAuth review and anyone else
+// must reach. The home page shows nothing private until app/page.tsx has checked the session.
+const PUBLIC_PAGES = ["/", "/privacy", "/terms"];
 
 export function isPublicPath(pathname: string): boolean {
   return (

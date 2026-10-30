@@ -42,15 +42,16 @@ describe("without a session (FR-8)", () => {
     expect(to.searchParams.get("next")).toBe("/settings?tab=photos");
   });
 
-  it("doesn't add next=/ for the home page", async () => {
+  it("lets the public home page through", async () => {
     const res = await updateSession(req("/"));
-    expect(res.headers.get("location")).toBe("http://localhost:3000/login");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
   });
 
   it("redirects to the public origin behind Cloud Run", async () => {
     process.env.APP_ORIGIN = "https://famcal.example.com/";
-    const res = await updateSession(req("/"));
-    expect(res.headers.get("location")).toBe("https://famcal.example.com/login");
+    const res = await updateSession(req("/settings"));
+    expect(res.headers.get("location")).toBe("https://famcal.example.com/login?next=%2Fsettings");
   });
 
   it("answers API calls with 401 JSON instead of a redirect", async () => {
@@ -105,5 +106,10 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/terms")).toBe(true);
     expect(isPublicPath("/privacy/../api/events")).toBe(false);
     expect(isPublicPath("/termsx")).toBe(false);
+  });
+
+  it("opens only the home page itself, not everything that starts with /", () => {
+    expect(isPublicPath("/")).toBe(true);
+    expect(isPublicPath("/settings")).toBe(false);
   });
 });

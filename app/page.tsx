@@ -1,12 +1,17 @@
-import { requireMemberPage } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getUser, isMember } from "@/lib/auth";
 import { listAccounts } from "@/lib/google";
 import { Display } from "@/components/display/display";
+import { HomePage } from "@/components/home-page";
 import { googleStatusText } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ google?: string }> }) {
-  await requireMemberPage();
+  const user = await getUser();
+  if (!user) return <HomePage />;
+  if (!(await isMember(user.id))) redirect("/auth/no-access");
+
   const status = googleStatusText((await searchParams).google);
   const accounts = await listAccounts();
 

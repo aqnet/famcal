@@ -4,6 +4,10 @@ import { useActionState, useState } from "react";
 import { sendReset, signIn, type FormState } from "./actions";
 import { PasswordField } from "@/components/auth/password-field";
 
+function AppIcon() {
+  return <img className="auth-logo" src="/famcal-mark.svg" alt="" width={80} height={80} />;
+}
+
 export function LoginCard({ next }: { next: string }) {
   const [mode, setMode] = useState<"signin" | "reset">("signin");
   const [signInState, signInAction, signingIn] = useActionState<FormState, FormData>(signIn, {});
@@ -13,6 +17,7 @@ export function LoginCard({ next }: { next: string }) {
     return (
       <form className="auth-card" action={resetAction}>
         <div>
+          <AppIcon />
           <h1 className="auth-title">Reset password</h1>
           <p className="auth-subtitle">We&rsquo;ll email you a link to set a new one.</p>
         </div>
@@ -44,12 +49,8 @@ export function LoginCard({ next }: { next: string }) {
   return (
     <form className="auth-card" action={signInAction}>
       <div>
-        <h1 className="auth-logo">
-          <picture>
-            <source srcSet="/famcal-logo-dark.svg" media="(prefers-color-scheme: dark)" />
-            <img src="/famcal-logo.svg" alt="FamCal" width={198} height={64} />
-          </picture>
-        </h1>
+        <AppIcon />
+        <h1 className="auth-title">FamCal</h1>
         <p className="auth-subtitle">Sign in to continue</p>
       </div>
       <input type="hidden" name="next" value={next} />
