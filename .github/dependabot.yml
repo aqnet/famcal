@@ -29,6 +29,10 @@ updates:
       # @types/node tracks the Node major the image runs (node:22 in the Dockerfile).
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # typescript-eslint (via eslint-config-next) supports TypeScript <6.1 only. Drop this once a
+      # typescript-eslint release supports TS 7.
+      - dependency-name: typescript
+        versions: [">=6.1"]
 
   - package-ecosystem: docker
     directory: /
