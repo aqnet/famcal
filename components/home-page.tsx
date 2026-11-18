@@ -3,8 +3,14 @@ import { LEGAL } from "@/components/legal";
 
 const FEATURES = [
   { title: "The whole week", text: "Everyone's Google calendars in one week view, each in its own colour." },
-  { title: "Edit by touch", text: "Tap to add an event, then drag it to move it or change how long it runs." },
-  { title: "Today's weather", text: "The temperature, the day's low and high, and a forecast when you plan ahead." },
+  {
+    title: "Edit by touch",
+    text: "Tap to add an event, then drag it to move it or change how long it runs.",
+  },
+  {
+    title: "Today's weather",
+    text: "The temperature, the day's low and high, and a forecast when you plan ahead.",
+  },
   { title: "Family photos", text: "A mosaic of your favourite photos from your SmugMug galleries." },
 ];
 
@@ -115,7 +121,9 @@ export function HomePage() {
           With their permission, FamCal can:
         </p>
         <ul>
-          <li>See the account&rsquo;s name, email address and profile picture, to identify it in Settings.</li>
+          <li>
+            See the account&rsquo;s name, email address and profile picture, to identify it in Settings.
+          </li>
           <li>See the list of calendars, so you can choose which ones to show.</li>
           <li>See calendar events, so they appear on the display.</li>
           <li>
