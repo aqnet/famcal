@@ -1,0 +1,60 @@
+# Dependabot version updates. Security updates (repo setting "Dependabot security updates") use these
+# same entries for grouping and labels. Patch and minor PRs merge themselves once CI passes
+# (.github/workflows/dependabot-auto-merge.yml); majors wait for a human.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: deps
+      prefix-development: deps-dev
+    groups:
+      # next and eslint-config-next are released together and must stay on the same version.
+      next:
+        patterns: ["next", "eslint-config-next"]
+      minor-and-patch:
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+    ignore:
+      # @types/node tracks the Node major the image runs (node:22 in the Dockerfile).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    labels: [dependencies]
+    commit-message:
+      prefix: deps
+    ignore:
+      # Move Node majors deliberately, together with @types/node.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Los_Angeles
+    labels: [dependencies]
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
